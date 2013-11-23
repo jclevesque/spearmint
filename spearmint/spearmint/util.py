@@ -26,8 +26,7 @@ import numpy.random as npr
 def unpack_args(str):
     if len(str) > 1:
         eq_re = re.compile("\s*=\s*")
-        return dict(map(lambda x: eq_re.split(x),
-                        re.compile("\s*,\s*").split(str)))
+        return dict([eq_re.split(x) for x in re.compile("\s*,\s*").split(str)])
     else:
         return {}
 
@@ -57,7 +56,7 @@ def slice_sample(init_x, logprob, sigma=1.0, step_out=True, max_steps_out=1000,
             new_z     = (upper - lower)*npr.rand() + lower
             new_llh   = dir_logprob(new_z)
             if np.isnan(new_llh):
-                print new_z, direction*new_z + init_x, new_llh, llh_s, init_x, logprob(init_x)
+                print(new_z, direction*new_z + init_x, new_llh, llh_s, init_x, logprob(init_x))
                 raise Exception("Slice sampler got a NaN")
             if new_llh > llh_s:
                 break
@@ -69,7 +68,7 @@ def slice_sample(init_x, logprob, sigma=1.0, step_out=True, max_steps_out=1000,
                 raise Exception("Slice sampler shrank to zero!")
 
         if verbose:
-            print "Steps Out:", l_steps_out, u_steps_out, " Steps In:", steps_in
+            print("Steps Out:", l_steps_out, u_steps_out, " Steps In:", steps_in)
 
         return new_z*direction + init_x
     
@@ -78,7 +77,7 @@ def slice_sample(init_x, logprob, sigma=1.0, step_out=True, max_steps_out=1000,
 
     dims = init_x.shape[0]
     if compwise:
-        ordering = range(dims)
+        ordering = list(range(dims))
         npr.shuffle(ordering)
         cur_x = init_x.copy()
         for d in ordering:

@@ -123,7 +123,7 @@ def start_web_view(options, experiment_config, chooser):
 
     from spearmint.web.app import app    
     port = get_available_port(options.web_status_port)
-    print "Using port: " + str(port)
+    print("Using port: " + str(port))
     app.set_experiment_config(experiment_config)
     app.set_chooser(options.chooser_module,chooser)
     debug = (options.verbose == True)
@@ -310,14 +310,14 @@ def check_experiment_dirs(expt_dir):
 # Cleanup locks and processes on ctl-c
 def sigint_handler(signal, frame):
     if web_proc:
-        print "closing web server...",
+        print("closing web server...", end=' ')
         web_proc.terminate()
-        print "done"
+        print("done")
     sys.exit(0)
 
 
 if __name__=='__main__':
-    print "setting up signal handler..."
+    print("setting up signal handler...")
     signal.signal(signal.SIGINT, sigint_handler)
     main()
 

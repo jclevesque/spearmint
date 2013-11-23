@@ -4,7 +4,7 @@ import re
 import subprocess
 import drmaa
 
-from dispatch import DispatchDriver
+from .dispatch import DispatchDriver
 from helpers  import *
 
 

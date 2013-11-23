@@ -30,7 +30,7 @@ import numpy.random   as npr
 import scipy.linalg   as spla
 import scipy.stats    as sps
 import scipy.optimize as spo
-import cPickle
+import pickle
 import multiprocessing
 
 from helpers import *
@@ -82,7 +82,7 @@ class GPEIOptChooser:
 
         # Write the hyperparameters out to a Pickle.
         fh = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        cPickle.dump({ 'dims'          : self.D,
+        pickle.dump({ 'dims'          : self.D,
                        'ls'            : self.ls,
                        'amp2'          : self.amp2,
                        'noise'         : self.noise,
@@ -147,7 +147,7 @@ class GPEIOptChooser:
     def _read_only(self):
         if os.path.exists(self.state_pkl):
             fh    = open(self.state_pkl, 'r')
-            state = cPickle.load(fh)
+            state = pickle.load(fh)
             fh.close()
 
             self.D             = state['dims']
@@ -167,7 +167,7 @@ class GPEIOptChooser:
         self.randomstate = npr.get_state()
         if os.path.exists(self.state_pkl):
             fh    = open(self.state_pkl, 'r')
-            state = cPickle.load(fh)
+            state = pickle.load(fh)
             fh.close()
 
             self.D             = state['dims']
@@ -237,7 +237,7 @@ class GPEIOptChooser:
 
             # Possibly burn in.
             if self.needs_burnin:
-                for mcmc_iter in xrange(self.burnin):
+                for mcmc_iter in range(self.burnin):
                     self.sample_hypers(comp, vals)
                     log("BURN %d/%d] mean: %.2f  amp: %.2f "
                                      "noise: %.4f  min_ls: %.4f  max_ls: %.4f"
@@ -249,7 +249,7 @@ class GPEIOptChooser:
             # Sample from hyperparameters.
             # Adjust the candidates to hit ei peaks
             self.hyper_samples = []
-            for mcmc_iter in xrange(self.mcmc_iters):
+            for mcmc_iter in range(self.mcmc_iters):
                 self.sample_hypers(comp, vals)
                 log("%d/%d] mean: %.2f  amp: %.2f  noise: %.4f "
                                  "min_ls: %.4f  max_ls: %.4f"
@@ -259,7 +259,7 @@ class GPEIOptChooser:
             self.dump_hypers()
 
             b = []# optimization bounds
-            for i in xrange(0, cand.shape[1]):
+            for i in range(0, cand.shape[1]):
                 b.append((0, 1))
 
             overall_ei = self.ei_over_hypers(comp,pend,cand2,vals)
@@ -305,10 +305,10 @@ class GPEIOptChooser:
 
             # Optimize over EI
             b = []# optimization bounds
-            for i in xrange(0, cand.shape[1]):
+            for i in range(0, cand.shape[1]):
                 b.append((0, 1))
 
-            for i in xrange(0, cand2.shape[0]):
+            for i in range(0, cand2.shape[0]):
                 ret = spo.fmin_l_bfgs_b(self.grad_optimize_ei,
                                         cand2[i,:].flatten(), args=(comp,vals,True),
                                         bounds=b, disp=0)
@@ -326,7 +326,7 @@ class GPEIOptChooser:
     # Compute EI over hyperparameter samples
     def ei_over_hypers(self,comp,pend,cand,vals):
         overall_ei = np.zeros((cand.shape[0], self.mcmc_iters))
-        for mcmc_iter in xrange(self.mcmc_iters):
+        for mcmc_iter in range(self.mcmc_iters):
             hyper = self.hyper_samples[mcmc_iter]
             self.mean = hyper[0]
             self.noise = hyper[1]
@@ -340,16 +340,16 @@ class GPEIOptChooser:
         (ei,dx1) = self.grad_optimize_ei_over_hypers(cand, comp, pend, vals)
         dx2 = dx1*0
         idx = np.zeros(cand.shape[0])
-        for i in xrange(0, cand.shape[0]):
+        for i in range(0, cand.shape[0]):
             idx[i] = 1e-6
             (ei1,tmp) = self.grad_optimize_ei_over_hypers(cand + idx, comp, pend, vals)
             (ei2,tmp) = self.grad_optimize_ei_over_hypers(cand - idx, comp, pend, vals)
             dx2[i] = (ei - ei2)/(2*1e-6)
             idx[i] = 0
-        print 'computed grads', dx1
-        print 'finite diffs', dx2
-        print (dx1/dx2)
-        print np.sum((dx1 - dx2)**2)
+        print('computed grads', dx1)
+        print('finite diffs', dx2)
+        print((dx1/dx2))
+        print(np.sum((dx1 - dx2)**2))
         time.sleep(2)
 
     # Adjust points by optimizing EI over a set of hyperparameter samples

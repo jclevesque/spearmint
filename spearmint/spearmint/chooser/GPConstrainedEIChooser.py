@@ -30,7 +30,7 @@ import numpy.random   as npr
 import scipy.linalg   as spla
 import scipy.stats    as sps
 import scipy.optimize as spo
-import cPickle
+import pickle
 import matplotlib.pyplot as plt
 import multiprocessing
 import copy
@@ -103,7 +103,7 @@ class GPConstrainedEIChooser:
 
         # Write the hyperparameters out to a Pickle.
         fh = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        cPickle.dump({ 'dims'        : self.D,
+        pickle.dump({ 'dims'        : self.D,
                        'ls'          : self.ls,
                        'amp2'        : self.amp2,
                        'noise'       : self.noise,
@@ -146,7 +146,7 @@ class GPConstrainedEIChooser:
         self.randomstate = npr.get_state()
         if os.path.exists(self.state_pkl):
             fh    = open(self.state_pkl, 'r')
-            state = cPickle.load(fh)
+            state = pickle.load(fh)
             fh.close()
 
             self.D                = state['dims']
@@ -221,10 +221,10 @@ class GPConstrainedEIChooser:
         goodvals = np.nonzero(idx)[0]
         badvals = np.nonzero(np.logical_not(idx))[0]
 
-        print 'Found %d constraint violating jobs' % (badvals.shape[0])
+        print('Found %d constraint violating jobs' % (badvals.shape[0]))
 
         # There's no point regressing on one observation
-        print 'Received %d valid results' % (goodvals.shape[0])
+        print('Received %d valid results' % (goodvals.shape[0]))
         if goodvals.shape[0] < 2:
             return int(candidates[0])
 
@@ -249,7 +249,7 @@ class GPConstrainedEIChooser:
 
             # Possibly burn in.
             if self.needs_burnin:
-                for mcmc_iter in xrange(self.burnin):
+                for mcmc_iter in range(self.burnin):
                     self.sample_constraint_hypers(comp, labels)
                     self.sample_hypers(comp[goodvals,:], vals[goodvals])
                     log("BURN %d/%d] mean: %.2f  amp: %.2f "
@@ -262,7 +262,7 @@ class GPConstrainedEIChooser:
             # Sample from hyperparameters.
             # Adjust the candidates to hit ei/sec peaks
             self.hyper_samples = []
-            for mcmc_iter in xrange(self.mcmc_iters):
+            for mcmc_iter in range(self.mcmc_iters):
                 self.sample_constraint_hypers(comp, labels)
                 self.sample_hypers(comp[goodvals,:], vals[goodvals])
                 if self.verbosity > 0:
@@ -288,7 +288,7 @@ class GPConstrainedEIChooser:
             comp_preds = np.zeros(labels.shape[0]).flatten()
 
             preds = self.pred_constraint_voilation(cand, comp, labels).flatten()
-            for ii in xrange(self.mcmc_iters):
+            for ii in range(self.mcmc_iters):
                 constraint_hyper = self.constraint_hyper_samples[ii]
                 self.ff = self.ff_samples[ii]
                 self.constraint_mean = constraint_hyper[0]
@@ -298,12 +298,12 @@ class GPConstrainedEIChooser:
                 comp_preds += self.pred_constraint_voilation(comp, comp,
                                                              labels).flatten()
             comp_preds = comp_preds / float(self.mcmc_iters)
-            print 'Predicting %.2f%% constraint violations (%d/%d): ' % (
-            np.mean(preds < 0.5)*100, np.sum(preds < 0.5), preds.shape[0])
+            print('Predicting %.2f%% constraint violations (%d/%d): ' % (
+            np.mean(preds < 0.5)*100, np.sum(preds < 0.5), preds.shape[0]))
             if self.verbosity > 0:
-                print 'Prediction` %f%% train accuracy (%d/%d): ' % (
+                print('Prediction` %f%% train accuracy (%d/%d): ' % (
                     np.mean((comp_preds > 0.5) == labels),
-                    np.sum((comp_preds > 0.5) == labels), comp_preds.shape[0])
+                    np.sum((comp_preds > 0.5) == labels), comp_preds.shape[0]))
 
             if self.visualize2D:
                 delta = 0.025
@@ -314,7 +314,7 @@ class GPConstrainedEIChooser:
                 cpreds = np.zeros((X.shape[0], X.shape[1]))
                 predei = np.zeros((X.shape[0], X.shape[1]))
                 predei2 = np.zeros((X.shape[0], X.shape[1]))
-                for ii in xrange(self.mcmc_iters):
+                for ii in range(self.mcmc_iters):
                     constraint_hyper = self.constraint_hyper_samples[ii]
                     self.ff = self.ff_samples[ii]
                     self.constraint_mean = constraint_hyper[0]
@@ -384,7 +384,7 @@ class GPConstrainedEIChooser:
 
             # Adjust the candidates to hit ei peaks
             b = []# optimization bounds
-            for i in xrange(0, cand.shape[1]):
+            for i in range(0, cand.shape[1]):
                 b.append((0, 1))
 
             # Optimize each point in parallel
@@ -449,7 +449,7 @@ class GPConstrainedEIChooser:
     # Compute EI over hyperparameter samples
     def ei_over_hypers(self,comp,pend,cand,vals,labels):
         overall_ei = np.zeros((cand.shape[0], self.mcmc_iters))
-        for mcmc_iter in xrange(self.mcmc_iters):
+        for mcmc_iter in range(self.mcmc_iters):
             hyper = self.hyper_samples[mcmc_iter]
             constraint_hyper = self.constraint_hyper_samples[mcmc_iter]
             self.mean = hyper[0]
@@ -473,7 +473,7 @@ class GPConstrainedEIChooser:
         summed_ei = 0
         summed_grad_ei = np.zeros(cand.shape).flatten()
 
-        for mcmc_iter in xrange(self.mcmc_iters):
+        for mcmc_iter in range(self.mcmc_iters):
             hyper = self.hyper_samples[mcmc_iter]
             constraint_hyper = self.constraint_hyper_samples[mcmc_iter]
             self.mean = hyper[0]
@@ -504,7 +504,7 @@ class GPConstrainedEIChooser:
         (ei,dx1) = self.grad_optimize_ei_over_hypers(cand, comp, pend, vals, labels)
         dx2 = dx1*0
         idx = np.zeros(cand.shape[0])
-        for i in xrange(0, cand.shape[0]):
+        for i in range(0, cand.shape[0]):
             idx[i] = 1e-6
             (ei1,tmp) = self.grad_optimize_ei_over_hypers(
                 cand + idx, comp, pend, vals, labels)
@@ -512,10 +512,10 @@ class GPConstrainedEIChooser:
                 cand - idx, comp, pend, vals, labels)
             dx2[i] = (ei - ei2)/(2*1e-6)
             idx[i] = 0
-        print 'computed grads', dx1
-        print 'finite diffs', dx2
-        print (dx1/dx2)
-        print np.sum((dx1 - dx2)**2)
+        print('computed grads', dx1)
+        print('finite diffs', dx2)
+        print((dx1/dx2))
+        print(np.sum((dx1 - dx2)**2))
         time.sleep(2)
 
     def grad_optimize_ei(self, cand, comp, pend, vals, labels, compute_grad=True):
@@ -1103,7 +1103,7 @@ class GPConstrainedEIChooser:
         cov   = self.constraint_amp2 * (self.cov_func(self.constraint_ls, comp, None) + 1e-6*np.eye(comp.shape[0])) + self.constraint_noise*np.eye(comp.shape[0])
         chol  = spla.cholesky(cov, lower=False)
         ff = self.ff
-        for jj in xrange(20):
+        for jj in range(20):
             (ff, lpell) = self.elliptical_slice(ff, chol, lpProbit)
 
         self.ff = ff
@@ -1156,7 +1156,7 @@ class GPConstrainedEIChooser:
             llh = np.sum(vals*np.log(probs) +
                          (1-vals)*np.log(1-probs))
             if np.any(np.isnan(probs)):
-                print probs
+                print(probs)
             return llh
 
         def lpSigmoid(ff,gain=self.constraint_gain):
@@ -1196,7 +1196,7 @@ class GPConstrainedEIChooser:
                                 self.constraint_noise*np.eye(comp.shape[0]))
         chol  = spla.cholesky(cov, lower=False)
         ff = self.ff
-        for jj in xrange(50):
+        for jj in range(50):
             (ff, lpell) = self.elliptical_slice(ff, chol, lpProbit)
         self.ff = ff
 

@@ -29,7 +29,7 @@ import numpy.random   as npr
 import scipy.linalg   as spla
 import scipy.stats    as sps
 import scipy.optimize as spo
-import cPickle
+import pickle
 
 from Locker  import *
 from helpers import *
@@ -68,7 +68,7 @@ class GPEIChooser:
 
         # Write the hyperparameters out to a Pickle.
         fh = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        cPickle.dump({ 'dims'   : self.D,
+        pickle.dump({ 'dims'   : self.D,
                        'ls'     : self.ls,
                        'amp2'   : self.amp2,
                        'noise'  : self.noise,
@@ -87,7 +87,7 @@ class GPEIChooser:
 
         if os.path.exists(self.state_pkl):
             fh    = open(self.state_pkl, 'r')
-            state = cPickle.load(fh)
+            state = pickle.load(fh)
             fh.close()
 
             self.D     = state['dims']
@@ -142,7 +142,7 @@ class GPEIChooser:
 
             overall_ei = np.zeros((cand.shape[0], self.mcmc_iters))
 
-            for mcmc_iter in xrange(self.mcmc_iters):
+            for mcmc_iter in range(self.mcmc_iters):
 
                 self.sample_hypers(comp, vals)
                 log("mean: %f  amp: %f  noise: %f  min_ls: %f  max_ls: %f"

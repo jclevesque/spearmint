@@ -81,10 +81,10 @@ Example
 :License: GPL 2 and 3
 
 """
-from __future__ import division  # future is >= 3.0, this code has mainly been used with 2.6 & 2.7
-from __future__ import with_statement  # only necessary for python 2.5 and not in heavy use
+  # future is >= 3.0, this code has mainly been used with 2.6 & 2.7
+  # only necessary for python 2.5 and not in heavy use
 # from __future__ import collections.MutableMapping # does not exist in future, otherwise 2.5 would work
-from __future__ import print_function  # for cross-checking, available from python 2.6
+  # for cross-checking, available from python 2.6
 import sys
 if sys.version.startswith('3'):  # in python 3.x
     xrange = range
@@ -542,10 +542,10 @@ class BoundPenalty(object):
         bounds = self.bounds
         if bounds in (None, [None, None]):
             return False
-        for i in xrange(bounds[0]):
+        for i in range(bounds[0]):
             if bounds[0][i] is not None and bounds[0][i] > -np.inf:
                 return True
-        for i in xrange(bounds[1]):
+        for i in range(bounds[1]):
             if bounds[1][i] is not None and bounds[1][i] < np.inf:
                 return True
         return False
@@ -575,18 +575,18 @@ class BoundPenalty(object):
             x_out = array(x, copy=True) if copy and not copy_always else x
             if bounds[0] is not None:
                 if np.isscalar(bounds[0]):
-                    for i in xrange(len(x)):
+                    for i in range(len(x)):
                         x_out[i] = max([bounds[0], x[i]])
                 else:
-                    for i in xrange(len(x)):
+                    for i in range(len(x)):
                         if bounds[0][i] is not None:
                             x_out[i] = max([bounds[0][i], x[i]])
             if bounds[1] is not None:
                 if np.isscalar(bounds[1]):
-                    for i in xrange(len(x)):
+                    for i in range(len(x)):
                         x_out[i] = min([bounds[1], x[i]])
                 else:
-                    for i in xrange(len(x)):
+                    for i in range(len(x)):
                         if bounds[1][i] is not None:
                             x_out[i] = min([bounds[1][i], x[i]])
         return x_out  # convenience return
@@ -663,7 +663,7 @@ class BoundPenalty(object):
         # compute varis = sigma**2 * C_ii
         varis = es.sigma**2 * array(N * [es.C] if np.isscalar(es.C) else (  # scalar case
                                 es.C if np.isscalar(es.C[0]) else  # diagonal matrix case
-                                [es.C[i][i] for i in xrange(N)]))  # full matrix case
+                                [es.C[i][i] for i in range(N)]))  # full matrix case
 
         # dmean = (es.mean - es.gp.into_bounds(es.mean)) / varis**0.5
         dmean = (es.mean - es.gp.geno(es.gp.into_bounds(es.gp.pheno(es.mean)))) / varis**0.5
@@ -918,7 +918,7 @@ class GenoPheno(object):
                 raise ValueError('len(bounds[0]) = ' + str(len(bounds[0])) +
                                  ' and len of initial solution (' + str(len(y)) + ') disagree')
             if copy_never:  # is rather slower
-                for i in xrange(len(y)):
+                for i in range(len(y)):
                     y[i] = max(bounds[0][i], y[i])
             else:
                 y = np.max([bounds[0], y], axis=0)
@@ -927,7 +927,7 @@ class GenoPheno(object):
                 raise ValueError('len(bounds[1]) = ' + str(len(bounds[1])) +
                                     ' and initial solution (' + str(len(y)) + ') disagree')
             if copy_never:
-                for i in xrange(len(y)):
+                for i in range(len(y)):
                     y[i] = min(bounds[1][i], y[i])
             else:
                 y = np.min([bounds[1], y], axis=0)
@@ -1652,7 +1652,7 @@ class CMAEvolutionStrategy(OOOptimizer):
             if self.countiter % 30/self.popsize**0.5 < 1:
                 self.sent_solutions.truncate(0, self.countiter - 1 - 3 * self.N/self.popsize**0.5)
             # insert solutions
-            for i in xrange(len(pop_geno)):
+            for i in range(len(pop_geno)):
                 self.sent_solutions[pop_pheno[i]] = {'geno': pop_geno[i],
                                             'pheno': pop_pheno[i],
                                             'iteration': self.countiter}
@@ -1730,7 +1730,7 @@ class CMAEvolutionStrategy(OOOptimizer):
         arz = self.randn((number, self.N))
         if 11 < 3:  # mutate along the principal axes only
             perm = np.random.permutation(self.N) # indices for mutated principal component
-            for i in xrange(min((len(arz), self.N))):
+            for i in range(min((len(arz), self.N))):
                 # perm = np.random.permutation(self.N)  # random principal component, should be much worse
                 l = sum(arz[i]**2)**0.5
                 arz[i] *= 0
@@ -1744,7 +1744,7 @@ class CMAEvolutionStrategy(OOOptimizer):
             pass
 
         if 11 < 3:  # normalize the length to chiN
-            for i in xrange(len(arz)):
+            for i in range(len(arz)):
                 # arz[i] *= exp(self.randn(1)[0] / 8)
                 ss = sum(arz[i]**2)**0.5
                 arz[i] *= self.const.chiN / ss
@@ -1829,7 +1829,7 @@ class CMAEvolutionStrategy(OOOptimizer):
         """
         idx2 = np.arange(len(f_values) - 1, len(f_values) - 1 - len(idx1), -1)
         f = []
-        for i in xrange(len(idx1)):
+        for i in range(len(idx1)):
             f.append(min((f_values[idx1[i]], f_values[idx2[i]])))
             # idx.append(idx1[i] if f_values[idx1[i]] > f_values[idx2[i]] else idx2[i])
         return idx2[np.argsort(f)][-1::-1]
@@ -1918,7 +1918,7 @@ class CMAEvolutionStrategy(OOOptimizer):
         fit = []  # or np.NaN * np.empty(number)
         X_first = self.ask(popsize)
         X = []
-        for k in xrange(int(popsize)):
+        for k in range(int(popsize)):
             nreject = -1
             f = np.NaN
             while f in (np.NaN, None):  # rejection sampling
@@ -1939,20 +1939,20 @@ class CMAEvolutionStrategy(OOOptimizer):
                 if 11 < 3 and self.opts['vv'] and nreject < 2:  # trying out negative C-update as constraints handling
                     if not hasattr(self, 'constraints_paths'):
                         k = 1
-                        self.constraints_paths = [np.zeros(self.N) for _i in xrange(k)]
+                        self.constraints_paths = [np.zeros(self.N) for _i in range(k)]
                     Izero = np.zeros([self.N, self.N])
-                    for i in xrange(self.N):
+                    for i in range(self.N):
                         if x[i] < 0:
                             Izero[i][i] = 1
                             self.C -= self.opts['vv'] * Izero
                             Izero[i][i] = 0
-                    if 1 < 3 and sum([ (9 + i + 1) * x[i] for i in xrange(self.N)]) > 50e3:
+                    if 1 < 3 and sum([ (9 + i + 1) * x[i] for i in range(self.N)]) > 50e3:
                         self.constraints_paths[0] = 0.9 * self.constraints_paths[0] + 0.1 * (x - self.mean) / self.sigma
                         self.C -= (self.opts['vv'] / self.N) * np.outer(self.constraints_paths[0], self.constraints_paths[0])
 
                 f = func(x, *args)
                 if f not in (np.NaN, None) and evaluations > 1:
-                    f = aggregation([f] + [func(x, *args) for _i in xrange(int(evaluations-1))])
+                    f = aggregation([f] + [func(x, *args) for _i in range(int(evaluations-1))])
                 if nreject + 1 % 1000 == 0:
                     print('  %d solutions rejected (f-value NaN or None) at iteration %d' %
                           (nreject, self.countiter))
@@ -2136,7 +2136,7 @@ class CMAEvolutionStrategy(OOOptimizer):
                 if len(check_points):
                     idx = check_points
             except:
-                idx = xrange(sp.popsize)
+                idx = range(sp.popsize)
 
             for k in idx:
                 self.repair_genotype(pop[k])
@@ -2244,7 +2244,7 @@ class CMAEvolutionStrategy(OOOptimizer):
 
                 if 11 < 3: # ?3 to 5 times slower??
                     Z = np.zeros((N,N))
-                    for k in xrange(sp.mu):
+                    for k in range(sp.mu):
                         z = (pop[k]-mold)
                         Z += np.outer((cmu * sp.weights[k] / (self.sigma * self.sigma_vec)**2) * z, z)
 
@@ -2255,7 +2255,7 @@ class CMAEvolutionStrategy(OOOptimizer):
             else: # separable/diagonal linear case
                 assert(c1+cmu <= 1)
                 Z = np.zeros(N)
-                for k in xrange(sp.mu):
+                for k in range(sp.mu):
                     z = (pop[k]-mold) / (self.sigma * self.sigma_vec) # TODO see above
                     Z += sp.weights[k] * z * z  # is 1-D
                 self.C = (1-c1a-cmu) * self.C + c1 * self.pc * self.pc + cmu * Z
@@ -2450,7 +2450,7 @@ class CMAEvolutionStrategy(OOOptimizer):
             climit = 1e13  # cave: conditioncov termination is 1e14
             if self.D[-1] / self.D[0] > climit:
                 self.D += self.D[-1] / climit
-            for i in xrange(self.N):
+            for i in range(self.N):
                 self.C[i][i] += self.D[-1] / climit
 
         if 11 < 3 and any(abs(sum(self.B[:,0:self.N-1] * self.B[:,1:], 0)) > 1e-6):
@@ -2587,7 +2587,7 @@ class CMAEvolutionStrategy(OOOptimizer):
             raise _Error('number of solutions ' + str(len(X)) +
                     ' must be a multiple of popsize (lambda) ' +
                     str(popsize))
-        for i in xrange(len(X) / popsize):
+        for i in range(len(X) / popsize):
             # feed in chunks of size popsize
             self.ask()  # a fake ask, mainly for a conditioned calling of updateBD
                         # and secondary to get possibly the same random state
@@ -3263,7 +3263,7 @@ class CMAStopDict(dict):
             # noeffectaxis (CEC: 0.1sigma), noeffectcoord (CEC:0.2sigma), conditioncov
             self._addstop('noeffectcoord',
                          any([es.mean[i] == es.mean[i] + 0.2*es.sigma*sqrt(es.dC[i])
-                              for i in xrange(N)]))
+                              for i in range(N)]))
             if opts['CMA_diagonal'] is not True and es.countiter > opts['CMA_diagonal']:
                 i = es.countiter % N
                 self._addstop('noeffectaxis',
@@ -3507,7 +3507,7 @@ class CMADataLogger(BaseDataLogger):  # might become a dict at some point
         """
         if not filenameprefix:
             filenameprefix = self.name_prefix
-        for i in xrange(len(self.file_names)):
+        for i in range(len(self.file_names)):
             fn = filenameprefix + self.file_names[i] + '.dat'
             try:
                 self.__dict__[self.key_names[i]] = _fileToMatrix(fn)
@@ -3867,7 +3867,7 @@ class CMADataLogger(BaseDataLogger):  # might become a dict at some point
             plot(np.dot(dat.std[-2, iabscissa],[1,1]), array([np.min(dat.std[-2,5:]), np.max(dat.std[-2,5:])]), 'k-')
             hold(True)
             # plot([dat.std[-1, iabscissa], ax[1]], [dat.std[-1,5:], yy[idx2]], 'k-') # line from last data point
-            for i in xrange(len(idx)):
+            for i in range(len(idx)):
                 # text(ax[1], yy[i], ' '+str(idx[i]))
                 text(dat.std[-1, iabscissa], dat.std[-1, 5+i], ' '+str(i))
         semilogy(dat.std[:, iabscissa], dat.std[:,5:], '-')
@@ -4352,7 +4352,7 @@ class DEAPCMADataLogger(BaseDataLogger):  # might become a dict at some point
                         + str(es.update_count * es.lambda_) + ' '
                         + str(es.sigma) + ' '
                         + '0 0 '
-                        + ' '.join(map(str, es.sigma*np.sqrt([es.C[i][i] for i in xrange(es.dim)])))
+                        + ' '.join(map(str, es.sigma*np.sqrt([es.C[i][i] for i in range(es.dim)])))
                         + '\n')
             # xmean
             fn = self.name_prefix + 'xmean.dat'
@@ -4611,7 +4611,7 @@ class DEAPCMADataLogger(BaseDataLogger):  # might become a dict at some point
             plot(np.dot(dat.std[-2, iabscissa],[1,1]), array([np.min(dat.std[-2,5:]), np.max(dat.std[-2,5:])]), 'k-')
             hold(True)
             # plot([dat.std[-1, iabscissa], ax[1]], [dat.std[-1,5:], yy[idx2]], 'k-') # line from last data point
-            for i in xrange(len(idx)):
+            for i in range(len(idx)):
                 # text(ax[1], yy[i], ' '+str(idx[i]))
                 text(dat.std[-1, iabscissa], dat.std[-1, 5+i], ' '+str(i))
         semilogy(dat.std[:, iabscissa], dat.std[:,5:], '-')
@@ -4833,7 +4833,7 @@ class DEAPCMADataLogger(BaseDataLogger):  # might become a dict at some point
         sys.stdout.flush()
 
 def irg(ar):
-    return xrange(len(ar))
+    return range(len(ar))
 class AII(object):
     """unstable experimental code, updates ps, sigma, sigmai, pr, r, sigma_r, mean,
     all from self.
@@ -4884,11 +4884,11 @@ class AII(object):
     def ask(self, popsize):
         if popsize == 1:
             raise NotImplementedError()
-        self.Z = [self.randn(self.N) for _i in xrange(popsize)]
+        self.Z = [self.randn(self.N) for _i in range(popsize)]
         self.zr = list(self.randn(popsize))
         pop = [self.mean + self.sigma * (self.sigmai * self.Z[k])
                 + self.zr[k] * self.sigma_r * self.r
-                for k in xrange(popsize)]
+                for k in range(popsize)]
         if not np.isfinite(pop[0][0]):
             raise ValueError()
         return pop
@@ -5625,9 +5625,9 @@ class NoiseHandler(object):
                     self.fitre[i] = fagg(func(ask(evals, X[i], self.epsilon), *args))
                 else:
                     self.fitre[i] = fagg([func(ask(1, X[i], self.epsilon)[0], *args)
-                                            for _k in xrange(evals)])
+                                            for _k in range(evals)])
             else:
-                self.fitre[i] = fagg([func(X[i], *args) for _k in xrange(evals)])
+                self.fitre[i] = fagg([func(X[i], *args) for _k in range(evals)])
         self.evaluations_just_done = evals * len(self.idx)
         return self.fit, self.fitre, self.idx
 
@@ -5920,7 +5920,7 @@ class Misc(object):
             if np.isscalar(b):
                 m = [max(x, b) for x in vec]
             else:
-                m = [max(vec[i], b[i]) for i in xrange(len(vec))]
+                m = [max(vec[i], b[i]) for i in range(len(vec))]
             return m
         @staticmethod
         def amin(vec_or_scalar, vec_or_scalar2):
@@ -5936,7 +5936,7 @@ class Misc(object):
             if iss(b):
                 return [min(x, b) for x in a]
             else:  # two non-scalars must have the same length
-                return [min(a[i], b[i]) for i in xrange(len(a))]
+                return [min(a[i], b[i]) for i in range(len(a))]
         @staticmethod
         def norm(vec, expo=2):
             return sum(vec**expo)**(1/expo)
@@ -5991,12 +5991,12 @@ class Misc(object):
                 l = 0
 
             if l == 0:
-                return array([Mh.cauchy_with_variance_one() for _i in xrange(size)])
+                return array([Mh.cauchy_with_variance_one() for _i in range(size)])
             elif l == 1:
-                return array([Mh.cauchy_with_variance_one() for _i in xrange(size[0])])
+                return array([Mh.cauchy_with_variance_one() for _i in range(size[0])])
             elif l == 2:
-                return array([[Mh.cauchy_with_variance_one() for _i in xrange(size[1])]
-                             for _j in xrange(size[0])])
+                return array([[Mh.cauchy_with_variance_one() for _i in range(size[1])]
+                             for _j in range(size[0])])
             else:
                 raise _Error('len(size) cannot be large than two')
 
@@ -6386,7 +6386,7 @@ class Misc(object):
             d = np.zeros(N)
             e = np.zeros(N)
         else:
-            V = [[x[i] for i in xrange(N)] for x in C]  # copy each "row"
+            V = [[x[i] for i in range(N)] for x in C]  # copy each "row"
             d = N * [0.]
             e = N * [0.]
 
@@ -6428,8 +6428,8 @@ class Rotation(object):
         N = x.shape[0]  # can be an array or matrix, TODO: accept also a list of arrays?
         if str(N) not in self.dicMatrices: # create new N-basis for once and all
             B = np.random.randn(N, N)
-            for i in xrange(N):
-                for j in xrange(0, i):
+            for i in range(N):
+                for j in range(0, i):
                     B[i] -= np.dot(B[i], B[j]) * B[j]
                 B[i] /= sum(B[i]**2)**0.5
             self.dicMatrices[str(N)] = B
@@ -6474,7 +6474,7 @@ class FitnessFunctions(object):
     def lineard(self, x):
         if 1 < 3 and any(array(x) < 0):
             return np.nan
-        if 1 < 3 and sum([ (10 + i) * x[i] for i in xrange(len(x))]) > 50e3:
+        if 1 < 3 and sum([ (10 + i) * x[i] for i in range(len(x))]) > 50e3:
             return np.nan
         return -sum(x)
     def sphere(self, x):
@@ -6674,7 +6674,7 @@ class FitnessFunctions(object):
     def schwefelelli(self, x):
         s = 0
         f = 0
-        for i in xrange(len(x)):
+        for i in range(len(x)):
             s += x[i]
             f += s**2
         return f
@@ -6837,7 +6837,7 @@ def main(argv=None):
             fun = None
         elif argv[1] in ('plot',):
             plot()
-            raw_input('press return')
+            input('press return')
             fun = None
         elif len(argv) > 3:
             fun = eval('fcts.' + argv[1])
@@ -6853,7 +6853,7 @@ def main(argv=None):
             sig0 = eval(argv[3])
 
         opts = {}
-        for i in xrange(5, len(argv), 2):
+        for i in range(5, len(argv), 2):
             opts[argv[i-1]] = eval(argv[i])
 
         # run fmin

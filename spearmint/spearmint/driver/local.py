@@ -1,7 +1,7 @@
 import os
 import multiprocessing
 
-from dispatch import DispatchDriver
+from .dispatch import DispatchDriver
 from helpers  import *
 from runner   import job_runner
 from Locker   import Locker

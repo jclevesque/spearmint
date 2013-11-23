@@ -100,14 +100,14 @@ _JOB = _descriptor.Descriptor(
     _descriptor.FieldDescriptor(
       name='expt_dir', full_name='Job.expt_dir', index=1,
       number=2, type=9, cpp_type=9, label=2,
-      has_default_value=False, default_value=unicode("", "utf-8"),
+      has_default_value=False, default_value=u"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
       name='name', full_name='Job.name', index=2,
       number=3, type=9, cpp_type=9, label=2,
-      has_default_value=False, default_value=unicode("", "utf-8"),
+      has_default_value=False, default_value=u"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -121,7 +121,7 @@ _JOB = _descriptor.Descriptor(
     _descriptor.FieldDescriptor(
       name='status', full_name='Job.status', index=4,
       number=5, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
+      has_default_value=False, default_value=u"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -191,7 +191,7 @@ _PARAMETER = _descriptor.Descriptor(
     _descriptor.FieldDescriptor(
       name='name', full_name='Parameter.name', index=0,
       number=1, type=9, cpp_type=9, label=2,
-      has_default_value=False, default_value=unicode("", "utf-8"),
+      has_default_value=False, default_value=u"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -240,7 +240,7 @@ _EXPERIMENT_PARAMETERSPEC = _descriptor.Descriptor(
     _descriptor.FieldDescriptor(
       name='name', full_name='Experiment.ParameterSpec.name', index=0,
       number=1, type=9, cpp_type=9, label=2,
-      has_default_value=False, default_value=unicode("", "utf-8"),
+      has_default_value=False, default_value=u"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -310,7 +310,7 @@ _EXPERIMENT = _descriptor.Descriptor(
     _descriptor.FieldDescriptor(
       name='name', full_name='Experiment.name', index=1,
       number=2, type=9, cpp_type=9, label=2,
-      has_default_value=False, default_value=unicode("", "utf-8"),
+      has_default_value=False, default_value=u"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -345,23 +345,18 @@ DESCRIPTOR.message_types_by_name['Job'] = _JOB
 DESCRIPTOR.message_types_by_name['Parameter'] = _PARAMETER
 DESCRIPTOR.message_types_by_name['Experiment'] = _EXPERIMENT
 
-class Job(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
+class Job(_message.Message, metaclass=_reflection.GeneratedProtocolMessageType):
   DESCRIPTOR = _JOB
 
   # @@protoc_insertion_point(class_scope:Job)
 
-class Parameter(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
+class Parameter(_message.Message, metaclass=_reflection.GeneratedProtocolMessageType):
   DESCRIPTOR = _PARAMETER
 
   # @@protoc_insertion_point(class_scope:Parameter)
 
-class Experiment(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
-
-  class ParameterSpec(_message.Message):
-    __metaclass__ = _reflection.GeneratedProtocolMessageType
+class Experiment(_message.Message, metaclass=_reflection.GeneratedProtocolMessageType):
+  class ParameterSpec(_message.Message, metaclass=_reflection.GeneratedProtocolMessageType):
     DESCRIPTOR = _EXPERIMENT_PARAMETERSPEC
 
     # @@protoc_insertion_point(class_scope:Experiment.ParameterSpec)

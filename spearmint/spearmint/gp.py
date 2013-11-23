@@ -79,7 +79,7 @@ def grad_dist2(ls, x1, x2=None):
                        compiler='gcc')
     except:
         # The C code weave above is 10x faster than this:
-        for i in xrange(0,x1.shape[0]):
+        for i in range(0,x1.shape[0]):
             gX[i,:,:] = 2*(x1[i,:] - x2[:,:])*(1/ls)
 
     return gX
@@ -198,7 +198,7 @@ class GP:
                     passed = True
                 except ValueError:
                     jitter = jitter*1.1
-                    print "Covariance matrix not PSD, adding jitter:", jitter
+                    print("Covariance matrix not PSD, adding jitter:", jitter)
                     passed = False
             return val
         
@@ -255,7 +255,7 @@ class GP:
             grad[1] = 0.5 * np.trace(np.dot( jacobian, np.eye(chol.shape[0]))) * noise
 
             # Log length scale gradients.
-            for dd in xrange(self.D):
+            for dd in range(self.D):
                 grad[dd+2] = 1 * np.trace(np.dot( jacobian, -amp2*grad_corr[:,:,dd]*comp[:,dd][:,np.newaxis]/(np.exp(ls[dd]))))*np.exp(ls[dd])
 
             # Roll in the prior variance.
@@ -278,7 +278,7 @@ class GP:
         # Use a bounded bfgs just to prevent the length-scales and noise from 
         # getting into regions that are numerically unstable
         b = [(-10,10),(-10,10)]
-        for i in xrange(comp.shape[1]):
+        for i in range(comp.shape[1]):
             b.append((-10,5))
   
         hypers = spo.fmin_l_bfgs_b(nlogprob, hypers, grad_nlogprob, args=(), bounds=b, disp=0)
@@ -304,7 +304,7 @@ def main():
     mygp.real_init(x.shape[1], y)
 
     # Sample some functions given these hyperparameters and plot them
-    for i in xrange(0,5):
+    for i in range(0,5):
         x = np.linspace(0,1,100)[:,np.newaxis]*10
         K = mygp.cov(x)
         y = np.random.randn(100)
@@ -315,14 +315,14 @@ def main():
         except:
             pass
 
-    print 'Loglikelihood before optimizing: ', mygp.logprob(x,y)
+    print('Loglikelihood before optimizing: ', mygp.logprob(x,y))
     mygp.optimize_hypers(x,y)
-    print 'Loglikelihood after optimizing: ', mygp.logprob(x,y)
+    print('Loglikelihood after optimizing: ', mygp.logprob(x,y))
         
     try:
         plt.show()
     except:
-        print 'Install matplotlib to get figures'        
+        print('Install matplotlib to get figures')        
 
 if __name__ == '__main__':
     main()

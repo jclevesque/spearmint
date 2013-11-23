@@ -159,7 +159,7 @@ def run_torch_job(job):
     # figure out how to get the result back out when the experiment completes.
 
     param_str = ""
-    for pname, pval in params.iteritems():
+    for pname, pval in params.items():
         if len(pval) == 1:
             pval = str(pval[0])
         else:
@@ -194,7 +194,7 @@ def run_mcr_job(job):
     # Change into the directory.
     os.chdir(job.expt_dir)
 
-    if os.environ.has_key('MATLAB'):
+    if 'MATLAB' in os.environ:
         mcr_loc = os.environ['MATLAB']
     else:
         mcr_loc = MCR_LOCATION

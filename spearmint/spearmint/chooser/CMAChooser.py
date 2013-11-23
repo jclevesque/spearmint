@@ -1,4 +1,4 @@
-from cma import CMAEvolutionStrategy
+from .cma import CMAEvolutionStrategy
 import util
 import Locker
 
