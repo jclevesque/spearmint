@@ -305,7 +305,7 @@ def write_trace(expt_dir, best_val, best_job,
                 n_candidates, n_pending, n_complete):
     '''Append current experiment state to trace file.'''
     trace_fh = open(os.path.join(expt_dir, 'trace.csv'), 'a')
-    trace_fh.write("%d,%f,%d,%d,%d,%d"
+    trace_fh.write("%d,%f,%d,%d,%d,%d\n"
                    % (time.time(), best_val, best_job,
                       n_candidates, n_pending, n_complete))
     trace_fh.close()
