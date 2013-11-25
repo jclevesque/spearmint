@@ -40,9 +40,10 @@ except ImportError: import json
 # from anywhere.
 sys.path.append(os.path.realpath(__file__))
 
-from ExperimentGrid  import *
-from helpers         import *
-from runner          import job_runner
+from .ExperimentGrid  import *
+from .helpers         import *
+from .runner          import job_runner
+from . import chooser
 
 # Use a global for the web process so we can kill it cleanly on exit
 web_proc = None
@@ -121,7 +122,7 @@ def get_available_port(portnum):
 def start_web_view(options, experiment_config, chooser):
     '''Start the web view in a separate process.'''
 
-    from spearmint.web.app import app    
+    from spearmint.web.app import app
     port = get_available_port(options.web_status_port)
     print("Using port: " + str(port))
     app.set_experiment_config(experiment_config)
@@ -134,16 +135,17 @@ def start_web_view(options, experiment_config, chooser):
     return proc
 
 
-def main():
-    (options, args) = parse_args()
+def main(options=None, experiment_config=None, expt_dir=None):
+    if options == None:
+        (options, args) = parse_args()
 
-    if options.job:
-        job_runner(load_job(options.job))
-        exit(0)
+        if options.job:
+            job_runner(load_job(options.job))
+            exit(0)
 
-    experiment_config = args[0]
-    expt_dir  = os.path.dirname(os.path.realpath(experiment_config))
-    log("Using experiment configuration: " + experiment_config)
+        experiment_config = args[0]
+        expt_dir  = os.path.dirname(os.path.realpath(experiment_config))
+    log("Using experiment configuration: " + str(experiment_config))
     log("experiment dir: " + expt_dir)
 
     if not os.path.exists(expt_dir):
@@ -154,14 +156,32 @@ def main():
     check_experiment_dirs(expt_dir)
 
     # Load up the chooser module.
-    module  = importlib.import_module('chooser.' + options.chooser_module)
+    try:
+        module  = __import__('chooser.' + options.chooser_module)
+    except:
+        #Ugly hack because fuck imports.
+        try:
+            module = __import__('learning_toolbox.third_party.spearmint.chooser.' +
+             options.chooser_module)
+            module = module.third_party.spearmint.chooser.__getattribute__(options.chooser_module)
+        except:
+            raise
     chooser = module.init(expt_dir, options.chooser_args)
 
     if options.web_status:
         web_proc = start_web_view(options, experiment_config, chooser)
 
     # Load up the job execution driver.
-    module = importlib.import_module('driver.' + options.driver)
+    try:
+        module  = __import__('driver.' + options.driver)
+    except:
+        #Ugly hack because fuck imports.
+        try:
+            module = __import__('learning_toolbox.third_party.spearmint.driver.' +
+             options.driver)
+            module = module.third_party.spearmint.driver.__getattribute__(options.driver)
+        except:
+            raise
     driver = module.init()
 
     # Loop until we run out of jobs.
@@ -179,7 +199,11 @@ def main():
 
 def attempt_dispatch(expt_config, expt_dir, chooser, driver, options):
     log("\n" + "-" * 40)
-    expt = load_experiment(expt_config)
+    if isinstance(expt_config, str):
+        expt = load_experiment(expt_config)
+    else:
+        expt = expt_config
+
 
     # Build the experiment grid.
     expt_grid = ExperimentGrid(expt_dir,
@@ -281,7 +305,7 @@ def write_trace(expt_dir, best_val, best_job,
                 n_candidates, n_pending, n_complete):
     '''Append current experiment state to trace file.'''
     trace_fh = open(os.path.join(expt_dir, 'trace.csv'), 'a')
-    trace_fh.write("%d,%f,%d,%d,%d,%d\n"
+    trace_fh.write("%d,%f,%d,%d,%d,%d"
                    % (time.time(), best_val, best_job,
                       n_candidates, n_pending, n_complete))
     trace_fh.close()

@@ -27,10 +27,10 @@ import pickle
 import numpy        as np
 import numpy.random as npr
 
-from spearmint_pb2 import *
-from Locker        import *
-from sobol_lib     import *
-from helpers       import *
+from .spearmint_pb2 import *
+from .Locker        import *
+from .sobol_lib     import *
+from .helpers       import *
 
 CANDIDATE_STATE = 0
 SUBMITTED_STATE = 1
@@ -162,7 +162,7 @@ class ExperimentGrid:
         self._save_jobs()
 
     def _load_jobs(self):
-        fh   = open(self.jobs_pkl, 'r')
+        fh   = open(self.jobs_pkl, 'rb')
         jobs = pickle.load(fh)
         fh.close()
 
@@ -176,7 +176,7 @@ class ExperimentGrid:
     def _save_jobs(self):
 
         # Write everything to a temporary file first.
-        fh = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        fh = tempfile.NamedTemporaryFile(mode='wb', delete=False)
         pickle.dump({ 'vmap'   : self.vmap,
                        'grid'   : self.grid,
                        'status' : self.status,
@@ -205,21 +205,21 @@ class GridMap:
         for variable in variables:
             self.cardinality += variable.size
 
-            if variable.type == Experiment.ParameterSpec.INT:
+            if variable.type == 'int':
                 self.variables.append({ 'name' : variable.name,
                                         'size' : variable.size,
                                         'type' : 'int',
                                         'min'  : int(variable.min),
                                         'max'  : int(variable.max)})
 
-            elif variable.type == Experiment.ParameterSpec.FLOAT:
+            elif variable.type == 'float':
                 self.variables.append({ 'name' : variable.name,
                                         'size' : variable.size,
                                         'type' : 'float',
                                         'min'  : float(variable.min),
                                         'max'  : float(variable.max)})
 
-            elif variable.type == Experiment.ParameterSpec.ENUM:
+            elif variable.type == 'enum':
                 self.variables.append({ 'name'    : variable.name,
                                         'size'    : variable.size,
                                         'type'    : 'enum',

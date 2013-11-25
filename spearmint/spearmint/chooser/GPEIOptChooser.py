@@ -20,9 +20,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os
-import gp
+from .. import gp
 import sys
-import util
+from .. import util
 import tempfile
 import copy
 import numpy          as np
@@ -33,8 +33,8 @@ import scipy.optimize as spo
 import pickle
 import multiprocessing
 
-from helpers import *
-from Locker  import *
+from ..helpers import *
+from ..Locker  import *
 
 def optimize_pt(c, b, comp, pend, vals, model):
     ret = spo.fmin_l_bfgs_b(model.grad_optimize_ei_over_hypers,
@@ -81,7 +81,7 @@ class GPEIOptChooser:
         self.locker.lock_wait(self.state_pkl)
 
         # Write the hyperparameters out to a Pickle.
-        fh = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        fh = tempfile.NamedTemporaryFile(mode='wb', delete=False)
         pickle.dump({ 'dims'          : self.D,
                        'ls'            : self.ls,
                        'amp2'          : self.amp2,
@@ -130,8 +130,8 @@ class GPEIOptChooser:
 
         try:
             output = (
-                '<br /><span class=\"label label-info\">Estimated mean:</span> ' + str(mean_mean) + 
-                '<br /><span class=\"label label-info\">Estimated noise:</span> ' + str(mean_noise) + 
+                '<br /><span class=\"label label-info\">Estimated mean:</span> ' + str(mean_mean) +
+                '<br /><span class=\"label label-info\">Estimated noise:</span> ' + str(mean_noise) +
                 '<br /><br /><span class=\"label label-info\">Inverse parameter sensitivity' +
                 ' - Gaussian Process length scales</span><br /><br />' +
                 '<div id=\"lschart\"></div><script type=\"text/javascript\">' +
@@ -146,7 +146,7 @@ class GPEIOptChooser:
     # Read in the chooser from file. Returns True only on success
     def _read_only(self):
         if os.path.exists(self.state_pkl):
-            fh    = open(self.state_pkl, 'r')
+            fh    = open(self.state_pkl, 'rb')
             state = pickle.load(fh)
             fh.close()
 

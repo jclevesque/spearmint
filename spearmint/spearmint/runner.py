@@ -1,10 +1,11 @@
+import collections
 import sys
 import os
 import traceback
 
-from spearmint_pb2   import *
-from ExperimentGrid  import *
-from helpers         import *
+from .spearmint_pb2   import *
+from .ExperimentGrid  import *
+from .helpers         import *
 
 
 # System dependent modules
@@ -111,7 +112,7 @@ def run_python_job(job):
     sys.path.append(os.path.realpath(job.expt_dir))
 
     # Convert the PB object into useful parameters.
-    params = {}
+    params = collections.OrderedDict()
     for param in job.param:
         dbl_vals = param.dbl_val._values
         int_vals = param.int_val._values
@@ -128,7 +129,7 @@ def run_python_job(job):
 
     # Load up this module and run
     module  = __import__(job.name)
-    result = module.main(job.id, params)
+    result = module.run(job.id, params)
 
     log("Got result %f\n" % (result))
 

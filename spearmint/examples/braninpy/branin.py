@@ -12,11 +12,11 @@ def branin(x):
 
   result = y
 
-  print result
+  print(result)
   return result
 
 # Write a function like this called 'main'
 def main(job_id, params):
-  print 'Anything printed here will end up in the output directory for job #:', str(job_id)
-  print params
+  print('Anything printed here will end up in the output directory for job #:', str(job_id))
+  print(params)
   return branin(params['X'])

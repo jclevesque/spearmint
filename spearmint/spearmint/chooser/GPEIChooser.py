@@ -67,7 +67,7 @@ class GPEIChooser:
         self.locker.lock_wait(self.state_pkl)
 
         # Write the hyperparameters out to a Pickle.
-        fh = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        fh = tempfile.NamedTemporaryFile(mode='wb', delete=False)
         pickle.dump({ 'dims'   : self.D,
                        'ls'     : self.ls,
                        'amp2'   : self.amp2,
