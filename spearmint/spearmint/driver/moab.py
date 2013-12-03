@@ -27,8 +27,8 @@ class MoabDriver(DispatchDriver):
         if job.account != '':
             sub_cmd.extend(['-A', job.account])
 
-        if job.walltime != '': #otherwise will be one hour?
-            sub_cmd.extend(['-l', 'walltime=%s' % job.walltime])
+        if job.walltime_limit != '': #otherwise will be one hour?
+            sub_cmd.extend(['-l', 'walltime=%s' % job.walltime_limit])
 
 
         process = subprocess.Popen(" ".join(sub_cmd),

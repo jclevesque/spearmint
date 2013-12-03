@@ -288,6 +288,8 @@ def attempt_dispatch(expt_config, expt_dir, chooser, driver, options):
         job.status    = 'submitted'
         job.submit_t  = int(time.time())
         job.param.extend(expt_grid.get_params(job_id))
+        job.account = options.job_account
+        job.walltime_limit = options.job_walltime_limit
 
         save_job(job)
         pid = driver.submit_job(job)
