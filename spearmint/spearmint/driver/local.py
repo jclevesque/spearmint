@@ -7,6 +7,9 @@ from ..runner   import job_runner
 from ..Locker   import Locker
 
 class LocalDriver(DispatchDriver):
+    def __init__(self, *args):
+        pass
+
     def submit_job(self, job):
        '''Submit a job for local execution.'''
 
@@ -40,5 +43,5 @@ class LocalDriver(DispatchDriver):
         return True
 
 
-def init():
-    return LocalDriver()
+def init(*args):
+    return LocalDriver(*args)

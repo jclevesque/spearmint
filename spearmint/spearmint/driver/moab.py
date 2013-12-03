@@ -5,56 +5,45 @@ import subprocess
 import drmaa
 
 from .dispatch import DispatchDriver
-from helpers  import *
+from .. import helpers
 
-
-# TODO: figure out if these modules are necessary, or if they can be handled in
-# the matlab runner or a user script...
-
-# System dependent modules
-# Note these are specific to the Harvard configuration
-DEFAULT_MODULES = [ 'packages/epd/7.1-2',
-                    'packages/matlab/r2011b',
-                    'mpi/openmpi/1.2.8/intel',
-                    'libraries/mkl/10.0',
-                    'packages/cuda/4.0',
-                    ]
-
-# Removed from SGE script...
-# Load matlab modules
-#module load %s
-
-class SGEDriver(DispatchDriver):
-    def __init__(self, *args):
-        pass
+class MoabDriver(DispatchDriver):
+    def __init__(self, job_id_suffix, *args):
+        self.job_id_suffix = job_id_suffix
 
     def submit_job(self, job):
         output_file = job_output_file(job)
         job_file    = job_file_for(job)
-        modules     = " ".join(DEFAULT_MODULES)
         mint_path   = sys.argv[0]
-        sge_script  = 'python %s --run-job "%s" .' % (mint_path, job_file)
+        script  = 'python3 %s --run-job "%s" .' % (mint_path, job_file)
 
-        qsub_cmd    = ['qsub', '-S', '/bin/bash',
+        sub_cmd    = ['msub', '-S', '/bin/bash',
                        '-N', "%s-%d" % (job.name, job.id),
                        '-e', output_file,
                        '-o', output_file,
-                       '-j', 'y',
+                       '-l', 'nodes=1:ppn=8' #depends on the supercomputer used
                       ]
 
-        process = subprocess.Popen(" ".join(qsub_cmd),
+        if job.account != '':
+            sub_cmd.extend(['-A', job.account])
+
+        if job.walltime != '': #otherwise will be one hour?
+            sub_cmd.extend(['-l', 'walltime=%s' % job.walltime])
+
+
+        process = subprocess.Popen(" ".join(sub_cmd),
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.STDOUT,
                                    shell=True)
-        output = process.communicate(input=sge_script)[0]
+        output = process.communicate(input=script)[0]
         process.stdin.close()
 
         # Parse out the job id.
-        match = re.search(r'Your job (\d+)', output)
+        match = re.search(r'\d{5,25}', output)
 
         if match:
-            return int(match.group(1))
+            return int(match.group())
         else:
             return None, output
 
@@ -67,7 +56,7 @@ class SGEDriver(DispatchDriver):
             reset_job = False
 
             try:
-                status = s.jobStatus(str(sgeid))
+                status = s.jobStatus(str(sgeid) + self.job_id_suffix)
             except:
                 log("EXC: %s\n" % (str(sys.exc_info()[0])))
                 log("Could not find SGE id for job %d (%d)\n" % (job_id, sgeid))
@@ -117,5 +106,5 @@ class SGEDriver(DispatchDriver):
 
 
 def init(*args):
-    return SGEDriver(*args)
+    return MoabDriver(*args)
 

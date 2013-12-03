@@ -136,6 +136,8 @@ def start_web_view(options, experiment_config, chooser):
 
 
 def main(options=None, experiment_config=None, expt_dir=None):
+    #If nothing given, get arguments from sys.argv. Otherwise they are provided
+    #by external caller.
     if options == None:
         (options, args) = parse_args()
 
@@ -159,11 +161,11 @@ def main(options=None, experiment_config=None, expt_dir=None):
     try:
         module  = __import__('chooser.' + options.chooser_module)
     except:
-        #Ugly hack because fuck imports.
+        #Ugly hack
         try:
-            module = __import__('learning_toolbox.third_party.spearmint.chooser.' +
+            module = __import__('spearmint.chooser.' +
              options.chooser_module)
-            module = module.third_party.spearmint.chooser.__getattribute__(options.chooser_module)
+            module = module.chooser.__getattribute__(options.chooser_module)
         except:
             raise
     chooser = module.init(expt_dir, options.chooser_args)
@@ -175,14 +177,13 @@ def main(options=None, experiment_config=None, expt_dir=None):
     try:
         module  = __import__('driver.' + options.driver)
     except:
-        #Ugly hack because fuck imports.
+        #Ugly hack
         try:
-            module = __import__('learning_toolbox.third_party.spearmint.driver.' +
-             options.driver)
-            module = module.third_party.spearmint.driver.__getattribute__(options.driver)
+            module = __import__('spearmint.driver.' + options.driver)
+            module = module.driver.__getattribute__(options.driver)
         except:
             raise
-    driver = module.init()
+    driver = module.init(options.job_id_suffix) #need a suffix because some schedulers don't return the full job name, only an ID.
 
     # Loop until we run out of jobs.
     while attempt_dispatch(experiment_config, expt_dir, chooser, driver, options):
