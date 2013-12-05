@@ -183,7 +183,9 @@ def main(options=None, experiment_config=None, expt_dir=None):
             module = module.driver.__getattribute__(options.driver)
         except:
             raise
-    driver = module.init(options.job_id_suffix) #need a suffix because some schedulers don't return the full job name, only an ID.
+
+    #A few more parameters given to the driver
+    driver = module.init(**options.driver_params)
 
     # Loop until we run out of jobs.
     while attempt_dispatch(experiment_config, expt_dir, chooser, driver, options):
@@ -288,13 +290,11 @@ def attempt_dispatch(expt_config, expt_dir, chooser, driver, options):
         job.status    = 'submitted'
         job.submit_t  = int(time.time())
         job.param.extend(expt_grid.get_params(job_id))
-        job.account = options.job_account
-        job.walltime_limit = options.job_walltime_limit
 
         save_job(job)
         pid = driver.submit_job(job)
         if pid != None:
-            log("submitted - pid = %d" % (pid))
+            log("submitted - pid = %s" % (pid))
             expt_grid.set_submitted(job_id, pid)
         else:
             log("Failed to submit job!")

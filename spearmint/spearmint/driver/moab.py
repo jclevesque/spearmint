@@ -8,47 +8,52 @@ from .dispatch import DispatchDriver
 from .. import helpers
 
 class MoabDriver(DispatchDriver):
-    def __init__(self, job_id_suffix, *args):
+    def __init__(self, job_id_suffix='', extra_sub_args='', **kwargs):
         self.job_id_suffix = job_id_suffix
+        self.extra_sub_args = extra_sub_args
 
     def submit_job(self, job):
-        output_file = job_output_file(job)
-        job_file    = job_file_for(job)
+        output_file = helpers.job_output_file(job)
+        job_file    = helpers.job_file_for(job)
         mint_path   = sys.argv[0]
         script  = 'python3 %s --run-job "%s" .' % (mint_path, job_file)
+        script = script.encode('ASCII')
 
-        sub_cmd    = ['msub', '-S', '/bin/bash',
-                       '-N', "%s-%d" % (job.name, job.id),
-                       '-e', output_file,
-                       '-o', output_file,
-                       '-l', 'nodes=1:ppn=8' #depends on the supercomputer used
-                      ]
+        sub_cmd    = "msub -S /bin/bash -N %s-%d -j oe -o %s -l nodes=1:ppn=8" % (job.name, job.id, output_file)
 
-        if job.account != '':
-            sub_cmd.extend(['-A', job.account])
+        sub_cmd = sub_cmd + ' ' + self.extra_sub_args
 
-        if job.walltime_limit != '': #otherwise will be one hour?
-            sub_cmd.extend(['-l', 'walltime=%s' % job.walltime_limit])
-
-
-        process = subprocess.Popen(" ".join(sub_cmd),
+        process = subprocess.Popen(sub_cmd.encode('ASCII'),
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.STDOUT,
                                    shell=True)
-        output = process.communicate(input=script)[0]
+        msub_output, _ = process.communicate(input=script)
         process.stdin.close()
 
+        msub_output = msub_output.decode()
+
         # Parse out the job id.
-        match = re.search(r'\d{5,25}', output)
+        match = re.search(r'\d{5,25}', msub_output)
 
         if match:
-            return int(match.group())
+            external_job_id = int(match.group())
         else:
-            return None, output
+            raise Exception('Error while submitting moab job. Could not retrieve job id. msub output : %s' % msub_output)
 
+        #This external job ID is pretty useless, we need to extract the internal job id.
+        output = subprocess.check_output(["checkjob", "-v", str(external_job_id)])
+    
+        match = re.search(r'DstRMJID: (.*)' + self.job_id_suffix, output.decode())
+        if match:
+            internal_job_id = match.group(1)
+        else:
+            raise Exception("Couldn't find internal job id, required for drmaa operations. msub command output : %s. checkjob output : %s" % (msub_output, output))
 
-    def is_proc_alive(self, job_id, sgeid):
+        return internal_job_id
+
+    def is_proc_alive(self, job_id, torque_id):
+        torque_id = str(torque_id) + self.job_id_suffix
         try:
             s = drmaa.Session()
             s.initialize()
@@ -56,46 +61,48 @@ class MoabDriver(DispatchDriver):
             reset_job = False
 
             try:
-                status = s.jobStatus(str(sgeid) + self.job_id_suffix)
+                status = s.jobStatus(torque_id)
             except:
-                log("EXC: %s\n" % (str(sys.exc_info()[0])))
-                log("Could not find SGE id for job %d (%d)\n" % (job_id, sgeid))
+                helpers.log("EXC: %s\n" % (str(sys.exc_info()[0])))
+                helpers.log("Could not find Torque id for job %s (%s)\n" % (job_id, torque_id))
                 status = -1
                 reset_job = True
 
             if status == drmaa.JobState.UNDETERMINED:
-                log("Job %d (%d) in undetermined state.\n" % (job_id, sgeid))
+                helpers.log("Job %s (%s) in undetermined state.\n" % (job_id, torque_id))
                 reset_job = True
 
             elif status == drmaa.JobState.QUEUED_ACTIVE:
-                log("Job %d (%d) waiting in queue.\n" % (job_id, sgeid))
+                helpers.log("Job %s (%s) waiting in queue.\n" % (job_id, torque_id))
 
             elif status == drmaa.JobState.RUNNING:
-                log("Job %d (%d) is running.\n" % (job_id, sgeid))
+                helpers.log("Job %s (%s) is running.\n" % (job_id, torque_id))
 
             elif status in [drmaa.JobState.SYSTEM_ON_HOLD,
                             drmaa.JobState.USER_ON_HOLD,
                             drmaa.JobState.USER_SYSTEM_ON_HOLD,
                             drmaa.JobState.SYSTEM_SUSPENDED,
                             drmaa.JobState.USER_SUSPENDED]:
-                log("Job %d (%d) is held or suspended.\n" % (job_id, sgeid))
+                helpers.log("Job %s (%s) is held or suspended.\n" % (job_id, torque_id))
                 reset_job = True
 
             elif status == drmaa.JobState.DONE:
-                log("Job %d (%d) is finished.\n" % (job_id, sgeid))
+                helpers.log("Job %s (%s) is finished.\n" % (job_id, torque_id))
 
             elif status == drmaa.JobState.FAILED:
-                log("Job %d (%d) failed.\n" % (job_id, sgeid))
+                helpers.log("Job %s (%s) failed.\n" % (job_id, torque_id))
                 reset_job = True
 
             if reset_job:
+                
 
                 try:
                     # Kill the job.
-                    s.control(str(sgeid), drmaa.JobControlAction.TERMINATE)
-                    log("Killed SGE job %d.\n" % (sgeid))
+                #    s.control(str(sgeid), drmaa.JobControlAction.TERMINATE)
+                #    helpers.log("Killed SGE job %s.\n" % (torque_id))
+                    helpers.log("Would try to kill SGE job %s.\n" % (torque_id))
                 except:
-                    log("Failed to kill SGE job %d.\n" % (sgeid))
+                    helpers.log("Failed to kill SGE job %s.\n" % (torque_id))
 
                 return False
             else:
@@ -105,6 +112,6 @@ class MoabDriver(DispatchDriver):
             s.exit()
 
 
-def init(*args):
-    return MoabDriver(*args)
+def init(**kwargs):
+    return MoabDriver(**kwargs)
 

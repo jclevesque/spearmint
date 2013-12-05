@@ -25,7 +25,7 @@ DEFAULT_MODULES = [ 'packages/epd/7.1-2',
 #module load %s
 
 class SGEDriver(DispatchDriver):
-    def __init__(self, *args):
+    def __init__(self, **kwargs):
         pass
 
     def submit_job(self, job):
@@ -116,6 +116,6 @@ class SGEDriver(DispatchDriver):
             s.exit()
 
 
-def init(*args):
-    return SGEDriver(*args)
+def init(**kwargs):
+    return SGEDriver(**kwargs)
 
