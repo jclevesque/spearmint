@@ -166,7 +166,7 @@ class GPEIOptChooser:
 
         self.randomstate = npr.get_state()
         if os.path.exists(self.state_pkl):
-            fh    = open(self.state_pkl, 'r')
+            fh    = open(self.state_pkl, 'rb')
             state = pickle.load(fh)
             fh.close()
 

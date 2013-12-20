@@ -40,10 +40,10 @@ except ImportError: import json
 # from anywhere.
 sys.path.append(os.path.realpath(__file__))
 
-from .ExperimentGrid  import *
-from .helpers         import *
-from .runner          import job_runner
-from . import chooser
+from spearmint.ExperimentGrid  import *
+from spearmint.helpers         import *
+from spearmint.runner          import job_runner
+from spearmint import chooser
 
 # Use a global for the web process so we can kill it cleanly on exit
 web_proc = None
@@ -143,7 +143,7 @@ def main(options=None, experiment_config=None, expt_dir=None):
 
         if options.job:
             job_runner(load_job(options.job))
-            exit(0)
+            return 0
 
         experiment_config = args[0]
         expt_dir  = os.path.dirname(os.path.realpath(experiment_config))
@@ -186,13 +186,19 @@ def main(options=None, experiment_config=None, expt_dir=None):
 
     #A few more parameters given to the driver
     driver = module.init(**options.driver_params)
-
+    
+    #On Moab, each script will relaunch the next experiments once it is done.
+    if options.driver == 'moab':
+        #In this case we will stop launching once the max number of concurrent jobs is reached.
+        while attempt_dispatch(experiment_config, expt_dir, chooser, driver, options) == 2:
+            time.sleep(options.polling_time)            
     # Loop until we run out of jobs.
-    while attempt_dispatch(experiment_config, expt_dir, chooser, driver, options):
-        # This is polling frequency. A higher frequency means that the algorithm
-        # picks up results more quickly after they finish, but also significantly
-        # increases overhead.
-        time.sleep(options.polling_time)
+    else:
+        while attempt_dispatch(experiment_config, expt_dir, chooser, driver, options):
+            # This is polling frequency. A higher frequency means that the algorithm
+            # picks up results more quickly after they finish, but also significantly
+            # increases overhead.
+            time.sleep(options.polling_time)
 
 
 # TODO:
@@ -252,15 +258,15 @@ def attempt_dispatch(expt_config, expt_dir, chooser, driver, options):
     if n_complete >= options.max_finished_jobs:
         log("Maximum number of finished jobs (%d) reached."
                          "Exiting" % options.max_finished_jobs)
-        return False
+        return 0
 
     if n_candidates == 0:
         log("There are no candidates left.  Exiting.")
-        return False
+        return 0
 
     if n_pending >= options.max_concurrent:
         log("Maximum number of jobs (%d) pending." % (options.max_concurrent))
-        return True
+        return 1
 
     else:
 
@@ -301,7 +307,7 @@ def attempt_dispatch(expt_config, expt_dir, chooser, driver, options):
             log("Deleting job file.")
             os.unlink(job_file_for(job))
 
-    return True
+    return 2
 
 
 def write_trace(expt_dir, best_val, best_job,

@@ -4,6 +4,7 @@ import re
 import subprocess
 import drmaa
 
+import spearmint.main as sm_main
 from .dispatch import DispatchDriver
 from .. import helpers
 
@@ -14,29 +15,27 @@ class MoabDriver(DispatchDriver):
 
     def submit_job(self, job):
         output_file = helpers.job_output_file(job)
+        error_file = os.path.splitext(output_file)[0] + '.err'
         job_file    = helpers.job_file_for(job)
-        mint_path   = sys.argv[0]
+        #Give back control to my own script rather than spearmint
+        mint_path   = sys.argv[0]#sm_main.__file__
         script  = 'python3 %s --run-job "%s" .' % (mint_path, job_file)
-        script = script.encode('ASCII')
-
-        sub_cmd    = "msub -S /bin/bash -N %s-%d -j oe -o %s -l nodes=1:ppn=8" % (job.name, job.id, output_file)
-
+        
+        sub_cmd = "msub -S /bin/bash -N %s-%d -e %s -o %s -l nodes=1:ppn=8" % (job.name, job.id, error_file, output_file)
         sub_cmd = sub_cmd + ' ' + self.extra_sub_args
-
-        process = subprocess.Popen(sub_cmd.encode('ASCII'),
-                                   stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.STDOUT,
-                                   shell=True)
-        msub_output, _ = process.communicate(input=script)
-        process.stdin.close()
-
+        
+        script_fn = os.path.splitext(job_file)[0] + '.pbs'
+        script_file = open(script_fn, 'wt')
+        script_file.write(r"cd ${PBS_O_WORKDIR}" + '\n')
+        script_file.write(script + '\n')
+        script_file.close()
+        msub_output = subprocess.check_output(sub_cmd.split(' ') + [script_fn])
         msub_output = msub_output.decode()
 
         # Parse out the job id.
         match = re.search(r'\d{5,25}', msub_output)
 
-        if match:
+        if msub_output.find('ERROR') == -1 and match:
             external_job_id = int(match.group())
         else:
             raise Exception('Error while submitting moab job. Could not retrieve job id. msub output : %s' % msub_output)
