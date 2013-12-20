@@ -188,13 +188,30 @@ def main(options=None, experiment_config=None, expt_dir=None):
     driver = module.init(**options.driver_params)
     
     #On Moab, each script will relaunch the next experiments once it is done.
-    if options.driver == 'moab':
-        #In this case we will stop launching once the max number of concurrent jobs is reached.
-        while attempt_dispatch(experiment_config, expt_dir, chooser, driver, options) == 2:
-            time.sleep(options.polling_time)            
+    if options.driver == 'moab' and options.jobs_per_node == 1:
+        #In this case we will stop launching when the max number of concurrent jobs is reached.
+        while True:
+            out, _ = attempt_dispatch(experiment_config, expt_dir, chooser, driver, options)
+            if out != 2:
+                break
+            time.sleep(options.polling_time)
+    elif options.driver == 'moab' and options.jobs_per_node > 1:
+        jobs = []
+        while True:
+            out, job = attempt_dispatch(experiment_config, expt_dir, chooser, driver, options, dont_submit=True)
+            if out != 2:
+                break
+            jobs.append(job)
+            if len(jobs) == options.jobs_per_node:
+                break
+        if len(jobs) > 0:
+            driver.submit_job(jobs)
     # Loop until we run out of jobs.
     else:
-        while attempt_dispatch(experiment_config, expt_dir, chooser, driver, options):
+        while True:
+            out, _ = attempt_dispatch(experiment_config, expt_dir, chooser, driver, options)
+            if out == 0:
+                break 
             # This is polling frequency. A higher frequency means that the algorithm
             # picks up results more quickly after they finish, but also significantly
             # increases overhead.
@@ -206,7 +223,7 @@ def main(options=None, experiment_config=None, expt_dir=None):
 #  driver classes to handle local execution and SGE execution.
 #  * take cmdline engine arg into account, and submit job accordingly
 
-def attempt_dispatch(expt_config, expt_dir, chooser, driver, options):
+def attempt_dispatch(expt_config, expt_dir, chooser, driver, options, skip_submit=False):    
     log("\n" + "-" * 40)
     if isinstance(expt_config, str):
         expt = load_experiment(expt_config)
@@ -258,15 +275,15 @@ def attempt_dispatch(expt_config, expt_dir, chooser, driver, options):
     if n_complete >= options.max_finished_jobs:
         log("Maximum number of finished jobs (%d) reached."
                          "Exiting" % options.max_finished_jobs)
-        return 0
+        return 0, None
 
     if n_candidates == 0:
         log("There are no candidates left.  Exiting.")
-        return 0
+        return 0, None
 
     if n_pending >= options.max_concurrent:
         log("Maximum number of jobs (%d) pending." % (options.max_concurrent))
-        return 1
+        return 1, None
 
     else:
 
@@ -298,16 +315,17 @@ def attempt_dispatch(expt_config, expt_dir, chooser, driver, options):
         job.param.extend(expt_grid.get_params(job_id))
 
         save_job(job)
-        pid = driver.submit_job(job)
-        if pid != None:
-            log("submitted - pid = %s" % (pid))
-            expt_grid.set_submitted(job_id, pid)
-        else:
-            log("Failed to submit job!")
-            log("Deleting job file.")
-            os.unlink(job_file_for(job))
+        if not skip_submit:
+            pid = driver.submit_job(job)
+            if pid != None:
+                log("submitted - pid = %s" % (pid))
+                expt_grid.set_submitted(job_id, pid)
+            else:
+                log("Failed to submit job!")
+                log("Deleting job file.")
+                os.unlink(job_file_for(job))
 
-    return 2
+    return 2, job
 
 
 def write_trace(expt_dir, best_val, best_job,

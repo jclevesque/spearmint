@@ -14,12 +14,22 @@ class MoabDriver(DispatchDriver):
         self.extra_sub_args = extra_sub_args
 
     def submit_job(self, job):
+        try:
+            num_jobs = len(job)
+            job_files = ' '.join([helpers.job_file_for(j) for j in job])
+            #use the first job for the rest
+            jobs = job
+            job = jobs[0]
+        except:
+            jobs = None
+            job_files = helpers.job_file_for(job)
+
         output_file = helpers.job_output_file(job)
         error_file = os.path.splitext(output_file)[0] + '.err'
-        job_file    = helpers.job_file_for(job)
+
         #Give back control to my own script rather than spearmint
         mint_path   = sys.argv[0]#sm_main.__file__
-        script  = 'python3 %s --run-job "%s" .' % (mint_path, job_file)
+        script = 'python3 %s --run-job "%s" .' % (mint_path, job_files)
         
         sub_cmd = "msub -S /bin/bash -N %s-%d -e %s -o %s -l nodes=1:ppn=8" % (job.name, job.id, error_file, output_file)
         sub_cmd = sub_cmd + ' ' + self.extra_sub_args
