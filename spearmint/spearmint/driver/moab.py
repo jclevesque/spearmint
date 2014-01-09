@@ -13,28 +13,31 @@ class MoabDriver(DispatchDriver):
         self.job_id_suffix = job_id_suffix
         self.extra_sub_args = extra_sub_args
 
-    def submit_job(self, job):
+    def submit_job(self, jobs):
+        #Handle the case where only one job is bundled for the driver, but
+        #also the case where there are many jobs bundled.
         try:
-            num_jobs = len(job)
-            job_files = ' '.join([helpers.job_file_for(j) for j in job])
-            #use the first job for the rest
-            jobs = job
-            job = jobs[0]
+            num_jobs = len(jobs)
         except:
-            jobs = None
-            job_files = helpers.job_file_for(job)
+            num_jobs = 1
+            jobs = [jobs]
 
-        output_file = helpers.job_output_file(job)
+        job_files = [helpers.job_file_for(j) for j in jobs]
+        job_files_str = ' '.join(job_files)
+        first_job = jobs[0]
+        first_job_fn = job_files[0]
+
+        output_file = helpers.job_output_file(first_job)
         error_file = os.path.splitext(output_file)[0] + '.err'
 
         #Give back control to my own script rather than spearmint
-        mint_path   = sys.argv[0]#sm_main.__file__
-        script = 'python3 %s --run-job "%s" .' % (mint_path, job_files)
+        mint_path = sys.argv[0]
+        script = 'python3 %s --run-job %s .' % (mint_path, job_files_str)
         
-        sub_cmd = "msub -S /bin/bash -N %s-%d -e %s -o %s -l nodes=1:ppn=8" % (job.name, job.id, error_file, output_file)
+        sub_cmd = "msub -S /bin/bash -N %s-%d -e %s -o %s -l nodes=1:ppn=8" % (first_job.name, first_job.id, error_file, output_file)
         sub_cmd = sub_cmd + ' ' + self.extra_sub_args
         
-        script_fn = os.path.splitext(job_file)[0] + '.pbs'
+        script_fn = os.path.splitext(first_job_fn)[0] + '.pbs'
         script_file = open(script_fn, 'wt')
         script_file.write(r"cd ${PBS_O_WORKDIR}" + '\n')
         script_file.write(script + '\n')
@@ -103,8 +106,6 @@ class MoabDriver(DispatchDriver):
                 reset_job = True
 
             if reset_job:
-                
-
                 try:
                     # Kill the job.
                 #    s.control(str(sgeid), drmaa.JobControlAction.TERMINATE)
