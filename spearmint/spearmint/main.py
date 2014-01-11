@@ -159,44 +159,64 @@ def main(options=None, experiment_config=None, expt_dir=None):
     check_experiment_dirs(expt_dir)
 
     # Load up the chooser module.
-    try:
-        module  = __import__('chooser.' + options.chooser_module)
-    except:
-        #Ugly hack
-        try:
-            module = __import__('spearmint.chooser.' +
-             options.chooser_module)
-            module = module.chooser.__getattribute__(options.chooser_module)
-        except:
-            raise
+    module = load_module('chooser', options.chooser_module)
     chooser = module.init(expt_dir, options.chooser_args)
 
     if options.web_status:
         web_proc = start_web_view(options, experiment_config, chooser)
 
-    # Load up the job execution driver.
-    try:
-        module  = __import__('driver.' + options.driver)
-    except:
-        #Ugly hack
-        try:
-            module = __import__('spearmint.driver.' + options.driver)
-            module = module.driver.__getattribute__(options.driver)
-        except:
-            raise
+    module = load_module('driver', options.driver)
+    driver = module.init()
 
-    #A few more parameters given to the driver
-    driver = module.init(**options.driver_params)
-    
-    #This flag will be True if each job is responsible to resubmit new experiments once it is done,
-    #eliminating the need for a permanently running process.
-    if options.resubmit_at_end:
-        while attempt_dispatch(experiment_config, expt_dir, chooser, driver, options) == 2:
-            #Small window so another process can access the experiment grid
-            time.sleep(1)
-    #This process won't end until we run out of jobs.
+    try:
+        module = load_module('driver', options.distant_driver)
+        distant_driver = module.init(**options.distant_driver_params)
+    except:
+        distant_driver = None
+
+    #Jobs per node is used for hybrid jobs.
+    if options.jobs_per_node != -1:
+        start_time = time.time()
+        total_time = 0
+        last_exp_time = 0
+        loops = 0
+        while True:
+            if options.nb_dist_nodes != 1 or (total_time + last_exp_time > 22*60*60):
+                #Launch new distant job without selecting any experiment, they
+                #will be selected on the distant node.
+                log("Launching on new distant nodes.")
+                for i in range(options.nb_dist_nodes): #only the first execution should
+                                                      #launch more than one distributed job.
+                    out = dispatch_empty_job(expt_dir, distant_driver, options)
+                    if out == 0:
+                        raise Exception("Error trying to dispatch empty job with distant driver.")
+                return
+            else:
+                pids = []
+                for i in range(options.jobs_per_node):
+                    out, pid = attempt_dispatch(experiment_config, expt_dir, chooser, driver, options)
+                    if out == 0:
+                        break #stop the local dispatch loop.
+                    pids.append(pid)
+                if len(pids) == 0:
+                    #we are done, no more processes launched.
+                    break
+                #Wait for all local jobs.
+                log("Waiting for local processes.")
+                for pid in pids:
+                    try:
+                        os.waitpid(pid, 0)
+                    except:
+                        pass
+                loops += 1
+                last_exp_time = time.time() - total_time - start_time
+                total_time = time.time() - start_time
+                log("All processes done executing %i times (this batch took %f mins, total time: %f\
+ mins)." % (loops, last_exp_time / 60, total_time / 60))
     else:
-        while attempt_dispatch(experiment_config, expt_dir, chooser, driver, options):
+        #This process won't end until we run out of jobs or time.
+        while True:
+            out, _ = attempt_dispatch(experiment_config, expt_dir, chooser, driver, options)
             # This is polling frequency. A higher frequency means that the algorithm
             # picks up results more quickly after they finish, but also significantly
             # increases overhead.
@@ -210,7 +230,7 @@ def main(options=None, experiment_config=None, expt_dir=None):
 
 def attempt_dispatch(expt_config, expt_dir, chooser, driver, options):
     '''
-    Dispatches a job encapsulating `num_jobs` jobs, if the number of jobs is greater
+    Dispatches a job containing `num_jobs` jobs, if the number of jobs is greater
     than 1 they will all have the same proc_id.
     '''
     log("\n" + "-" * 40)
@@ -228,7 +248,7 @@ def attempt_dispatch(expt_config, expt_dir, chooser, driver, options):
 
 
     jobs = []
-    num_jobs = options.jobs_per_node
+    num_jobs = 1
     for n in range(num_jobs):
         # Print out the current best function value.
         best_val, best_job = expt_grid.get_best()
@@ -268,25 +288,23 @@ def attempt_dispatch(expt_config, expt_dir, chooser, driver, options):
         if n_complete >= options.max_finished_jobs:
             log("Maximum number of finished jobs (%d) reached."
                 "Exiting" % options.max_finished_jobs)
-            return 0
+            return 0, None
 
         if n_candidates == 0:
             log("There are no candidates left. Exiting.")
-            return 0
+            return 0, None
 
         #Don't launch unless we can launch the complete bundle.
         if n_pending >= options.max_concurrent or (n == 0 and n_pending + num_jobs > options.max_concurrent):
             log("Maximum number of jobs (%d) pending." % (options.max_concurrent))
-            return 1
+            return 1, None
         else:
-            # start a bunch of candidate jobs if possible
-            #to_start = min(options.max_concurrent - n_pending, n_candidates)
-            #log("Trying to start %d jobs" % (to_start))
-            #for i in xrange(to_start):
-
             # Ask the chooser to pick the next candidate
             log("Choosing next candidate... ")
+            time_cand_start = time.time()
             job_id = chooser.next(grid, values, durations, candidates, pending, complete)
+            time_cand = time.time() - time_cand_start
+            log("Chose a candidate (took %i secs)." % (time_cand))
 
             # If the job_id is a tuple, then the chooser picked a new job.
             # We have to add this to our grid
@@ -325,7 +343,7 @@ def attempt_dispatch(expt_config, expt_dir, chooser, driver, options):
     if num_jobs > 1:
         pid = driver.submit_job(jobs)
         if pid != None:
-            log("submitted %i jobs with pid = %s" % (num_jobs, pid))
+            log("Submitted %i jobs with pid = %s" % (num_jobs, pid))
             for j in jobs:
                 expt_grid.set_submitted(j.id, pid)
         else:
@@ -334,7 +352,34 @@ def attempt_dispatch(expt_config, expt_dir, chooser, driver, options):
             for j in jobs:
                 os.unlink(job_file_for(j))
 
-    return 2
+    return 2, pid
+
+
+def dispatch_empty_job(expt_dir, driver, options):
+    '''
+    Dispatches a distant job containing nothing yet.
+    '''
+    pid = driver.submit_empty_job(expt_dir)
+    if pid != None:
+        log("Submitted - pid = %s" % (pid))
+        return 1
+    else:
+        log("Failed to submit job!")
+        return 0
+
+
+def load_module(folder, module_name):
+    # Load up the job execution driver.
+    try:
+        module  = __import__(folder + '.' + module_name)
+    except:
+        #Ugly hack
+        try:
+            module = __import__('spearmint.' + folder + '.' + module_name)
+            module = module.__getattribute__(folder).__getattribute__(module_name)
+        except:
+            raise
+    return module
 
 
 def write_trace(expt_dir, best_val, best_job,

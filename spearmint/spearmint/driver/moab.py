@@ -3,6 +3,7 @@ import sys
 import re
 import subprocess
 import drmaa
+import random
 
 import spearmint.main as sm_main
 from .dispatch import DispatchDriver
@@ -63,6 +64,66 @@ class MoabDriver(DispatchDriver):
             raise Exception("Couldn't find internal job id, required for drmaa operations. msub command output : %s. checkjob output : %s" % (msub_output, output))
 
         return internal_job_id
+
+
+    def submit_empty_job(self, expt_dir):
+        ''' 
+        Dispatch a distant empty job, the experiments will be chosen and executed
+         on the distant node.
+        '''
+        try:
+            index_file = open(expt_dir  + '/moab_index', 'rt')
+            index = int(index_file.readline())
+            index_file.close()
+        except:
+            index = 0
+
+        output_file = expt_dir + '/output/moab_%.3i.out' % index
+        error_file = expt_dir + '/output/moab_%.3i.err' % index
+
+        #Give back control to my own script rather than spearmint
+        mint_path = sys.argv[0]
+        script = 'python3 %s --run-local' % (mint_path)
+        job_name = os.path.split(mint_path)[1]
+        
+        sub_cmd = "msub -S /bin/bash -N %s -e %s -o %s -l nodes=1:ppn=8" % (job_name, error_file, output_file)
+        sub_cmd = sub_cmd + ' ' + self.extra_sub_args
+        print(sub_cmd)
+        
+        script_fn = job_name + '.' + str(random.randint(1e9, 1e15)) + '.pbs' #use random filename to prevent conflicts.
+        script_file = open(script_fn, 'wt')
+        script_file.write(r"cd ${PBS_O_WORKDIR}" + '\n')
+        script_file.write(script + '\n')
+        script_file.close()
+        msub_output = subprocess.check_output(sub_cmd.split(' ') + [script_fn])
+        msub_output = msub_output.decode()
+
+        # Parse out the job id.
+        match = re.search(r'\d{5,25}', msub_output)
+
+        if msub_output.find('ERROR') == -1 and match:
+            external_job_id = int(match.group())
+        else:
+            raise Exception('Error while submitting moab job. Could not retrieve job id. msub output : %s' % msub_output)
+
+        #clear unneeded temporary file
+        os.remove(script_fn)
+
+        #This external job ID is pretty useless, we need to extract the internal job id.
+        output = subprocess.check_output(["checkjob", "-v", str(external_job_id)])
+    
+        match = re.search(r'DstRMJID: (.*)' + self.job_id_suffix, output.decode())
+        if match:
+            internal_job_id = match.group(1)
+        else:
+            raise Exception("Couldn't find internal job id, required for drmaa operations. msub command output : %s. checkjob output : %s" % (msub_output, output))
+
+        index_file = open(expt_dir  + '/moab_index', 'wt')
+        index_file.write('%i' % (index + 1))
+        index_file.close()
+
+        return internal_job_id
+
 
     def is_proc_alive(self, job_id, torque_id):
         torque_id = str(torque_id) + self.job_id_suffix
