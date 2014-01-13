@@ -272,12 +272,13 @@ def attempt_dispatch(expt_config, expt_dir, chooser, driver, options):
             (n_candidates, n_pending, n_complete))
 
         # Verify that pending jobs are actually running, and add them back to the
+        # revisit this.
         # candidate set if they have crashed or gotten lost.
-        for job_id in pending:
-            proc_id = expt_grid.get_proc_id(job_id)
-            if proc_id != -1 and not driver.is_proc_alive(job_id, proc_id):
-                log("Set job %d back to candidate status." % (job_id))
-                expt_grid.set_candidate(job_id)
+        #for job_id in pending:
+        #    proc_id = expt_grid.get_proc_id(job_id)
+        #    if proc_id != -1 and not driver.is_proc_alive(job_id, proc_id):
+        #        log("Set job %d back to candidate status." % (job_id))
+        #        expt_grid.set_candidate(job_id)
 
         # Track the time series of optimization.
         write_trace(expt_dir, best_val, best_job, n_candidates, n_pending, n_complete)
