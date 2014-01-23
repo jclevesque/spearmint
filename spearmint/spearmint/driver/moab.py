@@ -8,7 +8,8 @@ from .dispatch import DispatchDriver
 from .. import helpers
 
 class MoabDriver(DispatchDriver):
-    def __init__(self, job_id_suffix='', extra_sub_args='', **kwargs):
+    def __init__(self, job_names_suffix, job_id_suffix='', extra_sub_args='', **kwargs):
+        self.job_names_suffix = job_names_suffix
         self.job_id_suffix = job_id_suffix
         self.extra_sub_args = extra_sub_args
 
@@ -19,7 +20,8 @@ class MoabDriver(DispatchDriver):
         script  = 'python3 %s --run-job "%s" .' % (mint_path, job_file)
         script = script.encode('ASCII')
 
-        sub_cmd    = "msub -S /bin/bash -N %s-%d -j oe -o %s -l nodes=1:ppn=8" % (job.name, job.id, output_file)
+        sub_cmd    = "msub -S /bin/bash -N %s-%d -j oe -o %s -l nodes=1:ppn=8" % (
+            job.name + self.job_names_suffix, job.id, output_file)
 
         sub_cmd = sub_cmd + ' ' + self.extra_sub_args
 
@@ -43,7 +45,7 @@ class MoabDriver(DispatchDriver):
 
         #This external job ID is pretty useless, we need to extract the internal job id.
         output = subprocess.check_output(["checkjob", "-v", str(external_job_id)])
-    
+
         match = re.search(r'DstRMJID: (.*)' + self.job_id_suffix, output.decode())
         if match:
             internal_job_id = match.group(1)
@@ -94,7 +96,7 @@ class MoabDriver(DispatchDriver):
                 reset_job = True
 
             if reset_job:
-                
+
 
                 try:
                     # Kill the job.

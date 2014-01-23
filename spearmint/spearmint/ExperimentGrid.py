@@ -205,21 +205,21 @@ class GridMap:
         for variable in variables:
             self.cardinality += variable.size
 
-            if variable.type == 'int':
+            if variable.type == 'int' or variable.type == Experiment.ParameterSpec.INT:
                 self.variables.append({ 'name' : variable.name,
                                         'size' : variable.size,
                                         'type' : 'int',
                                         'min'  : int(variable.min),
                                         'max'  : int(variable.max)})
 
-            elif variable.type == 'float':
+            elif variable.type == 'float' or variable.type == Experiment.ParameterSpec.FLOAT:
                 self.variables.append({ 'name' : variable.name,
                                         'size' : variable.size,
                                         'type' : 'float',
                                         'min'  : float(variable.min),
                                         'max'  : float(variable.max)})
 
-            elif variable.type == 'enum':
+            elif variable.type == 'enum' or variable.type == Experiment.ParameterSpec.ENUM:
                 self.variables.append({ 'name'    : variable.name,
                                         'size'    : variable.size,
                                         'type'    : 'enum',

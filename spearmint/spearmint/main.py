@@ -40,10 +40,10 @@ except ImportError: import json
 # from anywhere.
 sys.path.append(os.path.realpath(__file__))
 
-from .ExperimentGrid  import *
-from .helpers         import *
-from .runner          import job_runner
-from . import chooser
+from spearmint.ExperimentGrid  import *
+from spearmint.helpers         import *
+from spearmint.runner          import job_runner
+from spearmint import chooser
 
 # Use a global for the web process so we can kill it cleanly on exit
 web_proc = None
@@ -103,6 +103,7 @@ def parse_args():
                       help="Print verbose debug output.")
 
     (options, args) = parser.parse_args()
+    options.driver_params = {}
 
     if len(args) == 0:
         parser.print_help()
