@@ -19,7 +19,7 @@ DEFAULT_MODULES = [ 'packages/epd/7.1-2',
 MCR_LOCATION = "/home/matlab/v715" # hack
 
 
-def job_runner(job):
+def job_runner(job, *args):
     '''This fn runs in a new process.  Now we are going to do a little
     bookkeeping and then spin off the actual job that does whatever it is we're
     trying to achieve.'''
@@ -39,7 +39,7 @@ def job_runner(job):
 
     try:
         if job.language == MATLAB:   run_matlab_job(job)
-        elif job.language == PYTHON: run_python_job(job)
+        elif job.language == PYTHON: run_python_job(job, *args)
         elif job.language == SHELL:  run_torch_job(job)
         elif job.language == MCR:    run_mcr_job(job)
         else:
@@ -103,7 +103,7 @@ def run_matlab_job(job):
 
 # TODO: change this function to be more flexible when running python jobs
 # regarding the python path, experiment directory, etc...
-def run_python_job(job):
+def run_python_job(job, *args):
     '''Run a Python function.'''
 
     log("Running python job.\n")
@@ -128,6 +128,7 @@ def run_python_job(job):
             raise Exception("Unknown parameter type.")
 
     # Load up this module and run
+    sys.argv = [job.name] + '--run' + args
     module  = __import__(job.name)
     result = module.run(job.id, params)
 

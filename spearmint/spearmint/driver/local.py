@@ -19,7 +19,7 @@ class LocalDriver(DispatchDriver):
        locker = Locker()
        locker.unlock(grid_for(job))
 
-       proc = multiprocessing.Process(target=job_runner, args=[job])
+       proc = multiprocessing.Process(target=job_runner, args=[job] + sys.argv[2:])
        proc.start()
 
        if proc.is_alive():

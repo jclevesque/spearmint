@@ -10,10 +10,11 @@ from .dispatch import DispatchDriver
 from .. import helpers
 
 class MoabDriver(DispatchDriver):
-    def __init__(self, job_names_suffix, job_id_suffix='', extra_sub_args='', **kwargs):
+    def __init__(self, job_names_suffix, job_id_suffix='', moab_sub_args='', local_args='', **kwargs):
         self.job_names_suffix = job_names_suffix
         self.job_id_suffix = job_id_suffix
-        self.extra_sub_args = extra_sub_args
+        self.local_args = local_args
+        self.moab_sub_args = moab_sub_args
 
     def submit_job(self, jobs):
         #Handle the case where only one job is bundled for the driver, but
@@ -84,8 +85,8 @@ class MoabDriver(DispatchDriver):
         error_file = expt_dir + '/output/moab_%.3i.err' % index
 
         #Give back control to my own script rather than spearmint
-        mint_path = sys.argv[0]
-        script = 'python3 %s --run-local' % (mint_path)
+        #mint_path = sys.argv[0]
+        script = 'python3 %s --run-local %s' % (sys.argv[0], self.argv[2:]))
         job_name = os.path.split(mint_path)[1]
 
         sub_cmd = "msub -S /bin/bash -N %s -e %s -o %s -l nodes=1:ppn=8" % (
