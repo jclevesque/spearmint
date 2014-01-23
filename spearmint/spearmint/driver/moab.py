@@ -3,7 +3,9 @@ import sys
 import re
 import subprocess
 import drmaa
+import random
 
+import spearmint.main as sm_main
 from .dispatch import DispatchDriver
 from .. import helpers
 
@@ -13,32 +15,43 @@ class MoabDriver(DispatchDriver):
         self.job_id_suffix = job_id_suffix
         self.extra_sub_args = extra_sub_args
 
-    def submit_job(self, job):
-        output_file = helpers.job_output_file(job)
-        job_file    = helpers.job_file_for(job)
-        mint_path   = sys.argv[0]
-        script  = 'python3 %s --run-job "%s" .' % (mint_path, job_file)
-        script = script.encode('ASCII')
+    def submit_job(self, jobs):
+        #Handle the case where only one job is bundled for the driver, but
+        #also the case where there are many jobs bundled.
+        try:
+            num_jobs = len(jobs)
+        except:
+            num_jobs = 1
+            jobs = [jobs]
 
-        sub_cmd    = "msub -S /bin/bash -N %s-%d -j oe -o %s -l nodes=1:ppn=8" % (
-            job.name + self.job_names_suffix, job.id, output_file)
+        job_files = [helpers.job_file_for(j) for j in jobs]
+        job_files_str = ' '.join(job_files)
+        first_job = jobs[0]
+        first_job_fn = job_files[0]
 
+        output_file = helpers.job_output_file(first_job)
+        error_file = os.path.splitext(output_file)[0] + '.err'
+
+        #Give back control to my own script rather than spearmint
+        mint_path = sys.argv[0]
+        script = 'python3 %s --run-job %s .' % (mint_path, job_files_str)
+
+        sub_cmd = "msub -S /bin/bash -N %s-%d -e %s -o %s -l nodes=1:ppn=8" % (
+         first_job.name + self.job_names_suffix, first_job.id, error_file, output_file)
         sub_cmd = sub_cmd + ' ' + self.extra_sub_args
 
-        process = subprocess.Popen(sub_cmd.encode('ASCII'),
-                                   stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.STDOUT,
-                                   shell=True)
-        msub_output, _ = process.communicate(input=script)
-        process.stdin.close()
-
+        script_fn = os.path.splitext(first_job_fn)[0] + '.pbs'
+        script_file = open(script_fn, 'wt')
+        script_file.write(r"cd ${PBS_O_WORKDIR}" + '\n')
+        script_file.write(script + '\n')
+        script_file.close()
+        msub_output = subprocess.check_output(sub_cmd.split(' ') + [script_fn])
         msub_output = msub_output.decode()
 
         # Parse out the job id.
         match = re.search(r'\d{5,25}', msub_output)
 
-        if match:
+        if msub_output.find('ERROR') == -1 and match:
             external_job_id = int(match.group())
         else:
             raise Exception('Error while submitting moab job. Could not retrieve job id. msub output : %s' % msub_output)
@@ -53,6 +66,67 @@ class MoabDriver(DispatchDriver):
             raise Exception("Couldn't find internal job id, required for drmaa operations. msub command output : %s. checkjob output : %s" % (msub_output, output))
 
         return internal_job_id
+
+
+    def submit_empty_job(self, expt_dir):
+        '''
+        Dispatch a distant empty job, the experiments will be chosen and executed
+         on the distant node.
+        '''
+        try:
+            index_file = open(expt_dir  + '/moab_index', 'rt')
+            index = int(index_file.readline())
+            index_file.close()
+        except:
+            index = 0
+
+        output_file = expt_dir + '/output/moab_%.3i.out' % index
+        error_file = expt_dir + '/output/moab_%.3i.err' % index
+
+        #Give back control to my own script rather than spearmint
+        mint_path = sys.argv[0]
+        script = 'python3 %s --run-local' % (mint_path)
+        job_name = os.path.split(mint_path)[1]
+
+        sub_cmd = "msub -S /bin/bash -N %s -e %s -o %s -l nodes=1:ppn=8" % (
+            job_name + self.job_names_suffix, error_file, output_file)
+        sub_cmd = sub_cmd + ' ' + self.extra_sub_args
+        print(sub_cmd)
+
+        script_fn = job_name + '.' + str(random.randint(1e9, 1e15)) + '.pbs' #use random filename to prevent conflicts.
+        script_file = open(script_fn, 'wt')
+        script_file.write(r"cd ${PBS_O_WORKDIR}" + '\n')
+        script_file.write(script + '\n')
+        script_file.close()
+        msub_output = subprocess.check_output(sub_cmd.split(' ') + [script_fn])
+        msub_output = msub_output.decode()
+
+        # Parse out the job id.
+        match = re.search(r'\d{5,25}', msub_output)
+
+        if msub_output.find('ERROR') == -1 and match:
+            external_job_id = int(match.group())
+        else:
+            raise Exception('Error while submitting moab job. Could not retrieve job id. msub output : %s' % msub_output)
+
+        #clear unneeded temporary file
+        os.remove(script_fn)
+
+        #This external job ID is pretty useless, we need to extract the internal job id.
+        output = subprocess.check_output(["checkjob", "-v", str(external_job_id)])
+
+        match = re.search(r'DstRMJID: (.*)' + self.job_id_suffix, output.decode())
+        if match:
+            internal_job_id = match.group(1)
+        else:
+            raise Exception("Couldn't find internal job id, required for drmaa operations. msub command output : %s. checkjob output : %s" % (msub_output, output))
+
+        index_file = open(expt_dir  + '/moab_index', 'wt')
+        index_file.write('%i' % (index + 1))
+        index_file.close()
+
+        return internal_job_id
+
 
     def is_proc_alive(self, job_id, torque_id):
         torque_id = str(torque_id) + self.job_id_suffix
@@ -96,8 +170,6 @@ class MoabDriver(DispatchDriver):
                 reset_job = True
 
             if reset_job:
-
-
                 try:
                     # Kill the job.
                 #    s.control(str(sgeid), drmaa.JobControlAction.TERMINATE)
