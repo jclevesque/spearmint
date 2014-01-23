@@ -10,11 +10,11 @@ from .dispatch import DispatchDriver
 from .. import helpers
 
 class MoabDriver(DispatchDriver):
-    def __init__(self, job_names_suffix, job_id_suffix='', moab_sub_args='', local_args='', **kwargs):
-        self.job_names_suffix = job_names_suffix
+    def __init__(self, job_name, job_id_suffix='', extra_sub_args='',
+      **kwargs):
+        self.job_name = job_name
         self.job_id_suffix = job_id_suffix
-        self.local_args = local_args
-        self.moab_sub_args = moab_sub_args
+        self.extra_sub_args = extra_sub_args
 
     def submit_job(self, jobs):
         #Handle the case where only one job is bundled for the driver, but
@@ -85,16 +85,16 @@ class MoabDriver(DispatchDriver):
         error_file = expt_dir + '/output/moab_%.3i.err' % index
 
         #Give back control to my own script rather than spearmint
-        #mint_path = sys.argv[0]
-        script = 'python3 %s --run-local %s' % (sys.argv[0], self.argv[2:]))
-        job_name = os.path.split(mint_path)[1]
+        mint_path = sys.argv[0]
+        script = 'python3 %s --run-local %s' % (mint_path,
+         ' '.join(sys.argv[2:]))
 
         sub_cmd = "msub -S /bin/bash -N %s -e %s -o %s -l nodes=1:ppn=8" % (
-            job_name + self.job_names_suffix, error_file, output_file)
+            self.job_name, error_file, output_file)
         sub_cmd = sub_cmd + ' ' + self.extra_sub_args
         print(sub_cmd)
 
-        script_fn = job_name + '.' + str(random.randint(1e9, 1e15)) + '.pbs' #use random filename to prevent conflicts.
+        script_fn =  os.path.splitext(output_file)[0] + '.pbs'
         script_file = open(script_fn, 'wt')
         script_file.write(r"cd ${PBS_O_WORKDIR}" + '\n')
         script_file.write(script + '\n')
@@ -111,10 +111,15 @@ class MoabDriver(DispatchDriver):
             raise Exception('Error while submitting moab job. Could not retrieve job id. msub output : %s' % msub_output)
 
         #clear unneeded temporary file
-        os.remove(script_fn)
+        #os.remove(script_fn)
 
         #This external job ID is pretty useless, we need to extract the internal job id.
-        output = subprocess.check_output(["checkjob", "-v", str(external_job_id)])
+        for i in range(10):
+            try:
+                output = subprocess.check_output(["checkjob", "-v", str(external_job_id)])
+                break
+            except:
+                print("Failed checkjob %i times." % (i+1))
 
         match = re.search(r'DstRMJID: (.*)' + self.job_id_suffix, output.decode())
         if match:

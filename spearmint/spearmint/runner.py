@@ -128,7 +128,7 @@ def run_python_job(job, *args):
             raise Exception("Unknown parameter type.")
 
     # Load up this module and run
-    sys.argv = [job.name] + '--run' + args
+    sys.argv = [job.name] + ['--run'] + list(args)
     module  = __import__(job.name)
     result = module.run(job.id, params)
 

@@ -169,10 +169,10 @@ def main(options=None, experiment_config=None, expt_dir=None):
     module = load_module('driver', options.driver)
     driver = module.init()
 
-    try:
+    if options.jobs_per_node != -1:
         module = load_module('driver', options.distant_driver)
         distant_driver = module.init(**options.distant_driver_params)
-    except:
+    else:
         distant_driver = None
 
     #Jobs per node is used for hybrid jobs.
