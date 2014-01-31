@@ -73,6 +73,17 @@ def parse_args():
                       type="int", default=1)
     parser.add_option("--max-finished-jobs", dest="max_finished_jobs",
                       type="int", default=10000)
+
+    #New parameters to support my overly complex stuff
+    parser.add_option("--jobs-per-node", dest="jobs_per_node",
+                      type="int", default=1)
+    parser.add_option("--nb-dist-nodes", dest="nb_dist_nodes",
+                      type="int", default=1)
+    parser.add_option("--nb-mini-batches", dest="nb_mini_batches",
+                      type="int", default=0)
+    parser.add_option("--distant-driver", dest="distant_driver",
+                      type="string", default="")
+
     parser.add_option("--method", dest="chooser_module",
                       help="Method for choosing experiments [SequentialChooser, RandomChooser, GPEIOptChooser, GPEIOptChooser, GPEIperSecChooser, GPEIChooser]",
                       type="string", default="GPEIOptChooser")
@@ -169,7 +180,7 @@ def main(options=None, experiment_config=None, expt_dir=None):
     module = load_module('driver', options.driver)
     driver = module.init()
 
-    if options.jobs_per_node != -1:
+    if options.jobs_per_node != 1:
         module = load_module('driver', options.distant_driver)
         distant_driver = module.init(**options.distant_driver_params)
     else:
@@ -182,7 +193,7 @@ def main(options=None, experiment_config=None, expt_dir=None):
         last_exp_time = 0
         loops = 0
         while True:
-            if options.nb_dist_nodes != 1 or (total_time + last_exp_time > 22*60*60):
+            if options.nb_dist_nodes != 1 or (total_time + 1.5 * last_exp_time > 20*60*60):
                 #Launch new distant job without selecting any experiment, they
                 #will be selected on the distant node.
                 log("Launching on new distant nodes.")
@@ -246,7 +257,6 @@ def attempt_dispatch(expt_config, expt_dir, chooser, driver, options):
                                expt.variable,
                                options.grid_size,
                                options.grid_seed)
-
 
     jobs = []
     num_jobs = 1
@@ -325,6 +335,13 @@ def attempt_dispatch(expt_config, expt_dir, chooser, driver, options):
             job.status    = 'submitted'
             job.submit_t  = int(time.time())
             job.param.extend(expt_grid.get_params(job_id))
+            if options.nb_mini_batches > 0:
+                batch_i = expt_grid.mini_batch_i
+                expt_grid.mini_batch_i = (batch_i + 1) % options.nb_mini_batches
+                batch_param = Parameter()
+                batch_param.name = 'batch_i'
+                batch_param.int_val.append(batch_i)
+                job.param.extend([batch_param])
 
             save_job(job)
             if num_jobs == 1:

@@ -76,6 +76,7 @@ class ExperimentGrid:
             self.values   = np.zeros(grid_size) + np.nan
             self.durs     = np.zeros(grid_size) + np.nan
             self.proc_ids = np.zeros(grid_size, dtype=int)
+            self.mini_batch_i = 0
             self._save_jobs()
 
         # Or load in the grid from the pickled file.
@@ -172,6 +173,7 @@ class ExperimentGrid:
         self.values = jobs['values']
         self.durs   = jobs['durs']
         self.proc_ids = jobs['proc_ids']
+        self.mini_batch_i = jobs['mini_batch_i']
 
     def _save_jobs(self):
 
@@ -182,7 +184,8 @@ class ExperimentGrid:
                        'status' : self.status,
                        'values' : self.values,
                        'durs'   : self.durs,
-                       'proc_ids' : self.proc_ids }, fh)
+                       'proc_ids' : self.proc_ids,
+                       'mini_batch_i': self.mini_batch_i }, fh)
         fh.close()
 
         # Use an atomic move for better NFS happiness.
