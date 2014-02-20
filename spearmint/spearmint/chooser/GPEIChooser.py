@@ -20,9 +20,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os
-import gp
+from .. import gp
 import sys
-import util
+from .. import util
 import tempfile
 import numpy          as np
 import numpy.random   as npr
@@ -31,8 +31,8 @@ import scipy.stats    as sps
 import scipy.optimize as spo
 import pickle
 
-from Locker  import *
-from helpers import *
+from ..helpers import *
+from ..Locker  import *
 
 
 def init(expt_dir, arg_string):

@@ -180,7 +180,7 @@ def main(options=None, experiment_config=None, expt_dir=None):
     module = load_module('driver', options.driver)
     driver = module.init()
 
-    if options.jobs_per_node != 1:
+    if options.jobs_per_node != -1:
         module = load_module('driver', options.distant_driver)
         distant_driver = module.init(**options.distant_driver_params)
     else:
@@ -229,6 +229,10 @@ def main(options=None, experiment_config=None, expt_dir=None):
         #This process won't end until we run out of jobs or time.
         while True:
             out, _ = attempt_dispatch(experiment_config, expt_dir, chooser, driver, options)
+
+            if out == 0:
+                break
+
             # This is polling frequency. A higher frequency means that the algorithm
             # picks up results more quickly after they finish, but also significantly
             # increases overhead.
