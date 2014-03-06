@@ -103,7 +103,7 @@ def run_matlab_job(job):
 
 # TODO: change this function to be more flexible when running python jobs
 # regarding the python path, experiment directory, etc...
-def run_python_job(job, *args):
+def run_python_job(job, run_func=None):
     '''Run a Python function.'''
 
     log("Running python job.\n")
@@ -128,9 +128,11 @@ def run_python_job(job, *args):
             raise Exception("Unknown parameter type.")
 
     # Load up this module and run
-    sys.argv = [job.name] + ['--run'] + list(args)
-    module  = __import__(job.name)
-    result = module.run(job.id, params)
+    if run_func is None:
+        module  = __import__(job.name)
+        result = module.run(job.id, params)
+    else:
+        result = run_func(job.id, params)
 
     log("Got result %f\n" % (result))
 

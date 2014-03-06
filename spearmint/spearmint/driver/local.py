@@ -7,7 +7,8 @@ from ..runner   import job_runner
 from ..Locker   import Locker
 
 class LocalDriver(DispatchDriver):
-    def __init__(self, **kwargs):
+    def __init__(self, run_func=None, **kwargs):
+        self.run_func = run_func
         pass
 
     def submit_job(self, job):
@@ -19,7 +20,7 @@ class LocalDriver(DispatchDriver):
        locker = Locker()
        locker.unlock(grid_for(job))
 
-       proc = multiprocessing.Process(target=job_runner, args=[job] + sys.argv[2:])
+       proc = multiprocessing.Process(target=job_runner, args=[job, self.run_func])
        proc.start()
 
        if proc.is_alive():

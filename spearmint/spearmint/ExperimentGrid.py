@@ -175,7 +175,7 @@ class ExperimentGrid:
         self.proc_ids = jobs['proc_ids']
         try:
             self.mini_batch_i = jobs['mini_batch_i']
-        except:
+        except Exception as e:
             print("Mini batch i not saved in the expt-grid.pkl file, using 0.")
             self.mini_batch_i = 0
 

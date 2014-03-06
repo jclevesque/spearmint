@@ -178,7 +178,7 @@ def main(options=None, experiment_config=None, expt_dir=None):
         web_proc = start_web_view(options, experiment_config, chooser)
 
     module = load_module('driver', options.driver)
-    driver = module.init()
+    driver = module.init(run_func=options.run_func)
 
     if options.jobs_per_node != -1:
         module = load_module('driver', options.distant_driver)
