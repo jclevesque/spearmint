@@ -250,7 +250,11 @@ class GPEIOptChooser:
             # Adjust the candidates to hit ei peaks
             self.hyper_samples = []
             for mcmc_iter in range(self.mcmc_iters):
-                self.sample_hypers(comp, vals)
+                try:
+                    self.sample_hypers(comp, vals)
+                except:
+                    log("Failed to sample hyper parameters.")
+                    continue
                 log("%d/%d] mean: %.2f  amp: %.2f  noise: %.4f "
                                  "min_ls: %.4f  max_ls: %.4f"
                                  % (mcmc_iter+1, self.mcmc_iters, self.mean,
