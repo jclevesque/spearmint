@@ -173,7 +173,12 @@ class ExperimentGrid:
         self.values = jobs['values']
         self.durs   = jobs['durs']
         self.proc_ids = jobs['proc_ids']
-        self.mini_batch_i = jobs['mini_batch_i']
+        try:
+            self.mini_batch_i = jobs['mini_batch_i']
+        except Exception as e:
+            print(e)
+            print("Using mini batch 0")
+            self.mini_batch_i = 0
 
     def _save_jobs(self):
 
