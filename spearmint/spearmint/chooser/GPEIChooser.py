@@ -132,15 +132,16 @@ class GPEIChooser:
             self._real_init(grid.shape[1], values[complete])
 
         # Grab out the relevant sets.
-        comp = grid[complete,:]
-        cand = grid[candidates,:]
-        pend = grid[pending,:]
+        comp = grid[complete, :]
+        cand = grid[candidates, :]
+        pend = grid[pending, :]
         vals = values[complete]
 
         if self.mcmc_iters > 0:
             # Sample from hyperparameters.
 
             overall_ei = np.zeros((cand.shape[0], self.mcmc_iters))
+            gp_mean = np.zeros((cand.shape[0], self.mcmc_iters))
 
             for mcmc_iter in range(self.mcmc_iters):
 
@@ -148,9 +149,34 @@ class GPEIChooser:
                 log("mean: %f  amp: %f  noise: %f  min_ls: %f  max_ls: %f"
                                  % (self.mean, np.sqrt(self.amp2), self.noise, np.min(self.ls), np.max(self.ls)))
 
-                overall_ei[:,mcmc_iter] = self.compute_ei(comp, pend, cand, vals)
+                overall_ei[:, mcmc_iter], gp_mean[:, mcmc_iter] = self.compute_ei(comp, pend, cand, vals)
 
-            best_cand = np.argmax(np.mean(overall_ei, axis=1))
+            mean_ei = np.mean(overall_ei, axis=1)
+            best_cand = np.argmax(mean_ei)
+
+            std_ei = np.std(overall_ei, axis=1)
+
+            import matplotlib.pyplot as plt
+            fig = plt.figure()
+            ax = fig.add_subplot(211)
+            sort_i = np.argsort(cand[:, 0]) #hack, use only one parameter for alpha value selection debugging.
+            #import ipdb; ipdb.set_trace()
+            gp_mean_mean = np.mean(gp_mean, axis=1)
+            gp_mean_std = np.std(gp_mean, axis=1)
+
+            ax.scatter(cand[:, 0][best_cand], mean_ei[best_cand], c='r', s=30)
+            ax.plot(cand[:, 0][sort_i], mean_ei[sort_i])
+            ax.plot(cand[:, 0][sort_i], mean_ei[sort_i] + std_ei[sort_i], '--g')
+            ax.plot(cand[:, 0][sort_i], mean_ei[sort_i] - std_ei[sort_i], '--g')
+            ax.set_xlim((0, 1))
+
+            ax = fig.add_subplot(212)
+            ax.scatter(comp[:, 0], vals)
+            ax.plot(cand[:, 0][sort_i], gp_mean_mean[sort_i])
+            ax.plot(cand[:, 0][sort_i], gp_mean_mean[sort_i] + gp_mean_std[sort_i], '--g')
+            ax.plot(cand[:, 0][sort_i], gp_mean_mean[sort_i] - gp_mean_std[sort_i], '--g')
+            ax.set_xlim((0, 1))
+            fig.savefig('EI_%i.png' % (len(comp)))
 
             return int(candidates[best_cand])
 
@@ -205,7 +231,7 @@ class GPEIChooser:
             npdf   = sps.norm.pdf(u)
             ei     = func_s*( u*ncdf + npdf)
 
-            return ei
+            return ei, func_m
         else:
             # If there are pending experiments, fantasize their outcomes.
 
@@ -263,7 +289,7 @@ class GPEIChooser:
             npdf   = sps.norm.pdf(u)
             ei     = func_s*( u*ncdf + npdf)
 
-            return np.mean(ei, axis=1)
+            return np.mean(ei, axis=1), func_m
 
     def sample_hypers(self, comp, vals):
         if self.noiseless:
