@@ -64,11 +64,15 @@ class GPChooser:
         self.pending_samples = pending_samples
         self.D               = -1
         self.hyper_iters     = 1
-        self.noiseless       = bool(int(noiseless))
+        self.noiseless       = bool(noiseless)
 
         self.noise_scale = 0.1  # horseshoe prior
         self.amp2_scale  = 1    # zero-mean log normal prior
         self.max_ls      = 2    # top-hat prior on length scales
+
+        #For some reason, it seems to help to give some minimal noise even
+        #in the noiseless case.
+        self.noiseless_noise = 1e-12
 
 
         self.acquisition_func = acquisition_func
@@ -203,7 +207,7 @@ class GPChooser:
 
     def sample_hypers(self, comp, vals):
         if self.noiseless:
-            self.noise = 1e-3
+            self.noise = self.noiseless_noise
             self._sample_noiseless(comp, vals)
         else:
             self._sample_noisy(comp, vals)
@@ -259,7 +263,7 @@ class GPChooser:
         def logprob(hypers):
             mean  = hypers[0]
             amp2  = hypers[1]
-            noise = 1e-3
+            noise = self.noiseless_noise
 
             if amp2 < 0:
                 return -np.inf
@@ -279,7 +283,7 @@ class GPChooser:
                                    compwise=False)
         self.mean  = hypers[0]
         self.amp2  = hypers[1]
-        self.noise = 1e-3
+        self.noise = self.noiseless_noise
 
     def optimize_hypers(self, comp, vals):
         mygp = gp.GP(self.cov_func.__name__)
@@ -319,12 +323,12 @@ class GPChooser:
             func_m = np.dot(cand_cross.T, alpha) + self.mean
             func_v = self.amp2*(1+1e-6) - np.sum(beta**2, axis=0)
 
-            # Expected improvement
+            # Compute acquisition function values
             func_s = np.sqrt(func_v)
             acq = self.compute_acquisition(func_m, func_s, best,
                 **self.acquisition_params)
 
-            return acq, func_m, func_s
+            return acq, func_m, func_v
         else:
             # If there are pending experiments, fantasize their outcomes.
 
@@ -389,10 +393,10 @@ def compute_ei(func_m, func_s, bests):
     try:
         u = (bests[np.newaxis,:] - func_m) / func_s
     except:
-        u = (best - func_m) / func_s
+        u = (bests - func_m) / func_s
     ncdf = sps.norm.cdf(u)
     npdf = sps.norm.pdf(u)
-    ei = func_s*( u*ncdf + npdf)
+    ei = func_s * (u*ncdf + npdf)
     return ei
 
 
@@ -404,6 +408,8 @@ def plot_mean_and_acquisition(cand, best_cand, comp, vals, acq, overall_acq,
  m_mean, m_var, prefix, noiseless):
     n_cand, mcmc_iters = np.shape(overall_acq)
 
+    import matplotlib
+    matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     fig = plt.figure()
     ax = fig.add_subplot(211)
@@ -436,6 +442,6 @@ def plot_mean_and_acquisition(cand, best_cand, comp, vals, acq, overall_acq,
 
     ax.set_xlim((0, 1))
     ax.set_ylabel('marginal mean')
-    figname = prefix + ('_noiseless_' if noiseless else 'noisy_') + '%i.png' % (len(comp))
+    figname = prefix + ('_noiseless_' if noiseless else '_noisy_') + '%i.png' % (len(comp))
     fig.tight_layout()
     fig.savefig(figname)

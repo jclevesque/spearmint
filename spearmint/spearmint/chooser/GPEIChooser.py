@@ -35,8 +35,8 @@ from ..helpers import *
 from ..Locker  import *
 
 
-def init(expt_dir, arg_string):
-    args = util.unpack_args(arg_string)
+def init(expt_dir, args):
+    #args = util.unpack_args(arg_string)
     return GPEIChooser(expt_dir, **args)
 
 """
