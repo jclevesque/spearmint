@@ -59,6 +59,7 @@ class GPChooser:
         self.cov_func        = getattr(gp, covar)
         self.locker          = Locker()
         self.state_pkl       = os.path.join(expt_dir, self.__module__ + ".pkl")
+        self.expt_dir        = expt_dir
 
         self.mcmc_iters      = int(mcmc_iters)
         self.pending_samples = pending_samples
@@ -181,8 +182,9 @@ class GPChooser:
             best_cand = self.sort_func(acq)
 
             if self.save_acquisition_figures:
-                plot_mean_and_acquisition(cand, best_cand, comp, vals, acq,
-                 overall_acq, m_mean, m_var, self.acquisition_func, self.noiseless)
+                plot_mean_and_acquisition(self.expt_dir, cand, best_cand, comp,
+                  vals, acq, overall_acq, m_mean, m_var, self.acquisition_func,
+                  self.noiseless)
             return int(candidates[best_cand])
         else:
             # Optimize hyperparameters
@@ -404,8 +406,8 @@ def compute_lcb(func_m, func_s, bests, beta):
     return func_m - beta*func_s
 
 
-def plot_mean_and_acquisition(cand, best_cand, comp, vals, acq, overall_acq,
- m_mean, m_var, prefix, noiseless):
+def plot_mean_and_acquisition(expt_dir, cand, best_cand, comp, vals, acq,
+ overall_acq, m_mean, m_var, prefix, noiseless):
     n_cand, mcmc_iters = np.shape(overall_acq)
 
     import matplotlib
@@ -442,6 +444,10 @@ def plot_mean_and_acquisition(cand, best_cand, comp, vals, acq, overall_acq,
 
     ax.set_xlim((0, 1))
     ax.set_ylabel('marginal mean')
-    figname = prefix + ('_noiseless_' if noiseless else '_noisy_') + '%i.png' % (len(comp))
     fig.tight_layout()
+
+    #Save figure.
+    os.makedirs(os.path.join(expt_dir, 'figures'), exist_ok=True)
+    figname = prefix + ('_noiseless_' if noiseless else '_noisy_') + '%i.png' % (len(comp))
+    figname = os.path.join(expt_dir, 'figures', figname)
     fig.savefig(figname)
